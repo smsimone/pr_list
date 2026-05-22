@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logging/logging.dart';
 import 'package:pr_list/core/db/app_database.dart';
 import 'package:pr_list/core/di/injection_container.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:pr_list/core/services/git_client.dart';
+import 'package:pr_list/core/utils/failure.dart';
 import 'package:pr_list/features/projects/projects_providers.dart';
 import 'package:path/path.dart' as p;
 
@@ -26,6 +28,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
   late TextEditingController _pathController;
   bool _isSaving = false;
   String? _submitError;
+  final Logger _logger = Logger('ProjectFormDialog');
 
   @override
   void initState() {
@@ -44,11 +47,18 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
   }
 
   Future<void> _pickFolder() async {
-    final String? directory = await FilePicker.platform.getDirectoryPath();
-    if (directory == null) {
-      return;
+    _logger.info('Opening folder picker');
+    try {
+      final String? directory = await FilePicker.platform.getDirectoryPath();
+      if (directory == null) {
+        _logger.info('Folder picker cancelled by user');
+        return;
+      }
+      _logger.info('Folder selected: $directory');
+      _pathController.text = directory;
+    } catch (err) {
+      _logger.severe('Folder picker failed: $err');
     }
-    _pathController.text = directory;
   }
 
   @override
@@ -140,21 +150,31 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
       _isSaving = true;
       _submitError = null;
     });
+    final String path = _pathController.text.trim();
+    _logger.info('Saving project at path: $path');
+
     final GitClient gitClient = getIt<GitClient>();
     final hasRemoteResult = await gitClient.hasRemote(
-      workingDirectory: _pathController.text.trim(),
+      workingDirectory: path,
     );
     if (!mounted) {
       return;
     }
     if (hasRemoteResult.isLeft) {
+      final Failure failure = hasRemoteResult.left;
+      _logger.warning('Git validation failed: ${failure.message}');
+      _logger.warning('Git error cause: ${failure.cause}');
+      final String detail = failure.cause != null
+          ? '\n${failure.cause}'
+          : '';
       setState(() {
         _isSaving = false;
-        _submitError = l10n.validationProjectRepoInvalid;
+        _submitError = '${l10n.validationProjectRepoInvalid}$detail';
       });
       return;
     }
     if (!hasRemoteResult.right) {
+      _logger.info('Git repository has no remotes configured');
       setState(() {
         _isSaving = false;
         _submitError = l10n.validationProjectMissingRemote;
