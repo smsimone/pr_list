@@ -4,9 +4,14 @@
   "tabDashboard": "Dashboard",
   "addPr": "Aggiungi PR",
   "editPr": "Modifica PR",
+  "addProject": "Aggiungi progetto",
+  "editProject": "Modifica progetto",
   "save": "Salva",
   "cancel": "Annulla",
   "projectAlias": "Alias progetto",
+  "projectPath": "Percorso progetto",
+  "pickFolder": "Scegli cartella",
+  "createAlias": "Crea alias",
   "branch": "Branch",
   "jiraTicket": "Ticket Jira",
   "prLink": "Link PR",
@@ -16,7 +21,9 @@
   "patRequired": "Azure PAT richiesto per la sync",
   "azurePatTitle": "Azure PAT",
   "azurePatLabel": "PAT",
+  "tabProjects": "Progetti",
+  "emptyProjects": "Nessun progetto",
+  "emptyState": "Nessuna PR",
   "dashboardUnreleased": "Ticket non rilasciati",
-  "dashboardUnclosed": "Ticket non chiusi",
-  "emptyState": "Nessuna PR"
+  "dashboardUnclosed": "Ticket non chiusi"
 }

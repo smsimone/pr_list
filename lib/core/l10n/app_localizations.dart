@@ -128,6 +128,18 @@ abstract class AppLocalizations {
   /// **'Edit PR'**
   String get editPr;
 
+  /// No description provided for @addProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Add project'**
+  String get addProject;
+
+  /// No description provided for @editProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit project'**
+  String get editProject;
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:
@@ -145,6 +157,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Project alias'**
   String get projectAlias;
+
+  /// No description provided for @projectPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Project path'**
+  String get projectPath;
+
+  /// No description provided for @pickFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick folder'**
+  String get pickFolder;
+
+  /// No description provided for @createAlias.
+  ///
+  /// In en, this message translates to:
+  /// **'Create alias'**
+  String get createAlias;
 
   /// No description provided for @branch.
   ///
@@ -200,6 +230,24 @@ abstract class AppLocalizations {
   /// **'PAT'**
   String get azurePatLabel;
 
+  /// No description provided for @tabProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects'**
+  String get tabProjects;
+
+  /// No description provided for @emptyProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'No projects yet'**
+  String get emptyProjects;
+
+  /// No description provided for @emptyState.
+  ///
+  /// In en, this message translates to:
+  /// **'No PRs yet'**
+  String get emptyState;
+
   /// No description provided for @dashboardUnreleased.
   ///
   /// In en, this message translates to:
@@ -211,12 +259,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tickets not closed'**
   String get dashboardUnclosed;
-
-  /// No description provided for @emptyState.
-  ///
-  /// In en, this message translates to:
-  /// **'No PRs yet'**
-  String get emptyState;
 }
 
 class _AppLocalizationsDelegate

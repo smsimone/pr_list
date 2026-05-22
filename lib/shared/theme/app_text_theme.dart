@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTextTheme {
+  static const String kFontFamily = 'IBMPlexSans';
+
   static TextTheme light() {
-    return GoogleFonts.ibmPlexSansTextTheme();
+    return ThemeData(
+      brightness: Brightness.light,
+    ).textTheme.apply(fontFamily: kFontFamily);
   }
 
   static TextTheme dark() {
-    return GoogleFonts.ibmPlexSansTextTheme(
-      ThemeData(brightness: Brightness.dark).textTheme,
-    );
+    return ThemeData(
+      brightness: Brightness.dark,
+    ).textTheme.apply(fontFamily: kFontFamily);
   }
 }

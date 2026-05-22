@@ -7,8 +7,5 @@ import 'package:pr_list/features/pr_list/pr_list_state.dart';
 
 final prListNotifierProvider =
     StateNotifierProvider<PrListNotifier, PrListState>(
-  (ref) => PrListNotifier(
-    getIt<PrRepository>(),
-    getIt<ProviderRegistry>(),
-  ),
-);
+      (ref) => PrListNotifier(getIt<PrRepository>(), getIt<ProviderRegistry>()),
+    );

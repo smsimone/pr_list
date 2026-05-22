@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pr_list/core/db/app_database.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:pr_list/features/pr_list/pr_list_providers.dart';
+import 'package:pr_list/features/projects/project_form_dialog.dart';
+import 'package:pr_list/features/projects/projects_providers.dart';
 
 class PrFormDialog extends ConsumerStatefulWidget {
   final PullRequest? existing;
@@ -59,6 +61,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   Widget build(BuildContext context) {
     assert(true);
     final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final projectsState = ref.watch(projectsNotifierProvider);
     return AlertDialog(
       title: Text(widget.existing == null ? l10n.addPr : l10n.editPr),
       content: SizedBox(
@@ -68,12 +71,71 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              TextFormField(
-                controller: _projectController,
-                decoration: InputDecoration(labelText: l10n.projectAlias),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? l10n.projectAlias
-                    : null,
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Autocomplete<String>(
+                      initialValue: TextEditingValue(
+                        text: _projectController.text,
+                      ),
+                      optionsBuilder: (TextEditingValue value) {
+                        final String query = value.text.trim().toLowerCase();
+                        final List<String> aliases = projectsState.items
+                            .map((p) => p.alias)
+                            .toList();
+                        if (query.isEmpty) {
+                          return aliases;
+                        }
+                        return aliases
+                            .where(
+                              (alias) => alias.toLowerCase().contains(query),
+                            )
+                            .toList();
+                      },
+                      onSelected: (value) {
+                        _projectController.text = value;
+                      },
+                      fieldViewBuilder:
+                          (
+                            context,
+                            textController,
+                            focusNode,
+                            onFieldSubmitted,
+                          ) {
+                            if (textController.text !=
+                                _projectController.text) {
+                              textController.text = _projectController.text;
+                            }
+                            return TextFormField(
+                              controller: textController,
+                              focusNode: focusNode,
+                              decoration: InputDecoration(
+                                labelText: l10n.projectAlias,
+                              ),
+                              validator: (value) =>
+                                  value == null || value.trim().isEmpty
+                                  ? l10n.projectAlias
+                                  : null,
+                              onChanged: (value) {
+                                _projectController.text = value;
+                              },
+                            );
+                          },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton(
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) => ProjectFormDialog(
+                        initialAlias: _projectController.text.trim().isEmpty
+                            ? null
+                            : _projectController.text.trim(),
+                      ),
+                    ),
+                    child: Text(l10n.createAlias),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               TextFormField(

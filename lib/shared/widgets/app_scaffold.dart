@@ -22,6 +22,10 @@ class AppScaffold extends StatelessWidget {
             label: l10n.tabPrList,
           ),
           NavigationDestination(
+            icon: const Icon(Icons.folder_open),
+            label: l10n.tabProjects,
+          ),
+          NavigationDestination(
             icon: const Icon(Icons.dashboard_outlined),
             label: l10n.tabDashboard,
           ),

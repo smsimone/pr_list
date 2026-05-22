@@ -24,6 +24,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editPr => 'Edit PR';
 
   @override
+  String get addProject => 'Add project';
+
+  @override
+  String get editProject => 'Edit project';
+
+  @override
   String get save => 'Save';
 
   @override
@@ -31,6 +37,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get projectAlias => 'Project alias';
+
+  @override
+  String get projectPath => 'Project path';
+
+  @override
+  String get pickFolder => 'Pick folder';
+
+  @override
+  String get createAlias => 'Create alias';
 
   @override
   String get branch => 'Branch';
@@ -60,11 +75,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get azurePatLabel => 'PAT';
 
   @override
+  String get tabProjects => 'Projects';
+
+  @override
+  String get emptyProjects => 'No projects yet';
+
+  @override
+  String get emptyState => 'No PRs yet';
+
+  @override
   String get dashboardUnreleased => 'Tickets not released';
 
   @override
   String get dashboardUnclosed => 'Tickets not closed';
-
-  @override
-  String get emptyState => 'No PRs yet';
 }

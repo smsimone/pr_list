@@ -9,10 +9,7 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     assert(message.trim().isNotEmpty, 'message must not be empty');
     return Center(
-      child: Text(
-        message,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
+      child: Text(message, style: Theme.of(context).textTheme.titleMedium),
     );
   }
 }

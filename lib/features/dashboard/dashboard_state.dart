@@ -4,8 +4,5 @@ class DashboardState {
   final List<PullRequest> notReleased;
   final List<PullRequest> notClosed;
 
-  const DashboardState({
-    required this.notReleased,
-    required this.notClosed,
-  });
+  const DashboardState({required this.notReleased, required this.notClosed});
 }

@@ -4,11 +4,7 @@ class SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const SectionCard({
-    super.key,
-    required this.title,
-    required this.child,
-  });
+  const SectionCard({super.key, required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +16,7 @@ class SectionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text(title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             child,
           ],

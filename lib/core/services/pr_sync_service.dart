@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:pr_list/core/db/app_database.dart';
 import 'package:pr_list/core/services/git_client.dart';
-import 'package:pr_list/core/services/pr_repository.dart';
 import 'package:pr_list/core/services/git_provider.dart';
+import 'package:pr_list/core/services/pr_repository.dart';
 import 'package:pr_list/core/services/provider_registry.dart';
+import 'package:pr_list/core/services/project_repository.dart';
 import 'package:pr_list/core/services/secure_storage_service.dart';
 import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/core/utils/failure.dart';
@@ -17,6 +18,7 @@ class PrSyncService {
   final ProviderRegistry _providerRegistry;
   final GitClient _gitClient;
   final SecureStorageService _secureStorage;
+  final ProjectRepository _projectRepository;
   final Logger _logger;
   Timer? _pollingTimer;
 
@@ -25,15 +27,13 @@ class PrSyncService {
     this._providerRegistry,
     this._gitClient,
     this._secureStorage,
+    this._projectRepository,
     this._logger,
   );
 
   void start() {
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(
-      _kSyncInterval,
-      (_) => _syncAll(),
-    );
+    _pollingTimer = Timer.periodic(_kSyncInterval, (_) => _syncAll());
   }
 
   void stop() {
@@ -43,8 +43,7 @@ class PrSyncService {
 
   Future<void> _syncAll() async {
     _logger.info('Starting PR sync');
-    final Either<Failure, List<PullRequest>> result =
-        await _loadPullRequests();
+    final Either<Failure, List<PullRequest>> result = await _loadPullRequests();
     if (result.isLeft) {
       _logger.warning('Failed to load PRs');
       return;
@@ -70,8 +69,11 @@ class PrSyncService {
         continue;
       }
 
-      final Either<Failure, void> syncResult =
-          await _syncProvider(pr, provider, pat);
+      final Either<Failure, void> syncResult = await _syncProvider(
+        pr,
+        provider,
+        pat,
+      );
       if (syncResult.isLeft) {
         _logger.warning('Sync provider failed');
         continue;
@@ -80,7 +82,8 @@ class PrSyncService {
       final String? updatedStatus = await _loadProviderStatus(pr.id);
       if (updatedStatus == 'completed') {
         final String? lastCommit = await _loadLastCommit(pr.id);
-        await _syncEnvironments(pr.id, lastCommit);
+        final String? workingDir = await _resolveWorkingDirectory(pr);
+        await _syncEnvironments(pr.id, lastCommit, workingDir);
       }
     }
   }
@@ -107,8 +110,10 @@ class PrSyncService {
     GitProvider provider,
     String pat,
   ) async {
-    final infoResult =
-        await provider.fetchPullRequestInfo(url: pr.prLink!, pat: pat);
+    final infoResult = await provider.fetchPullRequestInfo(
+      url: pr.prLink!,
+      pat: pat,
+    );
     if (infoResult.isLeft) {
       return Either.left(infoResult.left);
     }
@@ -126,11 +131,22 @@ class PrSyncService {
     return const Either.right(null);
   }
 
-  Future<void> _syncEnvironments(int prId, String? lastCommitSha) async {
+  Future<void> _syncEnvironments(
+    int prId,
+    String? lastCommitSha,
+    String? workingDirectory,
+  ) async {
     if (lastCommitSha == null || lastCommitSha.trim().isEmpty) {
       return;
     }
-    final result = await _gitClient.branchesContainingCommit(lastCommitSha);
+    if (workingDirectory == null || workingDirectory.trim().isEmpty) {
+      _logger.warning('Missing working directory for git command');
+      return;
+    }
+    final result = await _gitClient.branchesContainingCommit(
+      lastCommitSha,
+      workingDirectory: workingDirectory,
+    );
     if (result.isLeft) {
       _logger.warning('git branch contains failed');
       return;
@@ -162,5 +178,16 @@ class PrSyncService {
       return null;
     }
     return result.right?.lastCommitSha;
+  }
+
+  Future<String?> _resolveWorkingDirectory(PullRequest pr) async {
+    if (pr.projectAlias.trim().isEmpty) {
+      return null;
+    }
+    final result = await _projectRepository.getByAlias(pr.projectAlias);
+    if (result.isLeft) {
+      return null;
+    }
+    return result.right?.path;
   }
 }

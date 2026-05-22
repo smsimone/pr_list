@@ -7,21 +7,24 @@ import 'package:pr_list/core/utils/failure.dart';
 class LocalGitClient implements GitClient {
   @override
   Future<Either<Failure, List<String>>> branchesContainingCommit(
-    String commitSha,
-  ) async {
+    String commitSha, {
+    required String workingDirectory,
+  }) async {
     assert(commitSha.trim().isNotEmpty, 'commitSha must not be empty');
+    assert(
+      workingDirectory.trim().isNotEmpty,
+      'workingDirectory must not be empty',
+    );
     try {
       final ProcessResult result = await Process.run(
         'git',
         <String>['branch', '-r', '--contains', commitSha],
+        workingDirectory: workingDirectory,
         runInShell: true,
       );
       if (result.exitCode != 0) {
         return Either.left(
-          Failure(
-            message: 'git command failed',
-            cause: result.stderr,
-          ),
+          Failure(message: 'git command failed', cause: result.stderr),
         );
       }
       final String output = result.stdout.toString();

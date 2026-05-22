@@ -43,10 +43,10 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.28
   path: ^1.9.0
   path_provider: ^2.1.5
-  google_fonts: ^6.2.1
   logging: ^1.3.0
   http: ^1.2.2
   flutter_secure_storage: ^9.2.2
+  file_picker: ^8.1.7
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +74,11 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  fonts:
+    - family: IBMPlexSans
+      fonts:
+        - asset: assets/fonts/IBMPlexSans-Regular.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

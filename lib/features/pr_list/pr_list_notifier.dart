@@ -13,7 +13,7 @@ class PrListNotifier extends StateNotifier<PrListState> {
   StreamSubscription<List<PullRequest>>? _subscription;
 
   PrListNotifier(this._repository, this._providerRegistry)
-      : super(PrListState.initial()) {
+    : super(PrListState.initial()) {
     _subscription = _repository.watchAll().listen(
       (List<PullRequest> items) {
         state = state.copyWith(items: items, isLoading: false);

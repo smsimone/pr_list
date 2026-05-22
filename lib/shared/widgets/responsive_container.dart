@@ -12,10 +12,7 @@ class ResponsiveContainer extends StatelessWidget {
     final double maxWidth = width > 900 ? 900 : width;
     return Align(
       alignment: Alignment.topCenter,
-      child: SizedBox(
-        width: maxWidth,
-        child: child,
-      ),
+      child: SizedBox(width: maxWidth, child: child),
     );
   }
 }

@@ -33,7 +33,20 @@ class SchemaMigrations extends Table {
   DateTimeColumn get appliedAt => dateTime()();
 }
 
-@DriftDatabase(tables: [PullRequests, SchemaMigrations])
+class Projects extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get alias => text()();
+  TextColumn get path => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => <Set<Column>>[
+    <Column>{alias},
+  ];
+}
+
+@DriftDatabase(tables: [PullRequests, SchemaMigrations, Projects])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -41,12 +54,17 @@ class AppDatabase extends _$AppDatabase {
   int get schemaVersion => _migrations.last.version;
 
   List<_MigrationStep> get _migrations => <_MigrationStep>[
-        _MigrationStep(
-          version: 1,
-          checksum: '20240522_init',
-          run: (Migrator m) async => m.createTable(pullRequests),
-        ),
-      ];
+    _MigrationStep(
+      version: 1,
+      checksum: '20240522_init',
+      run: (Migrator m) async => m.createTable(pullRequests),
+    ),
+    _MigrationStep(
+      version: 2,
+      checksum: '20240522_projects',
+      run: (Migrator m) async => m.createTable(projects),
+    ),
+  ];
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

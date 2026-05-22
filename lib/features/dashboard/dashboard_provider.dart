@@ -8,12 +8,11 @@ final dashboardProvider = StreamProvider<DashboardState>((ref) {
   final PrRepository repository = getIt<PrRepository>();
   return repository.watchAll().map((List<PullRequest> items) {
     final List<PullRequest> notReleased = items
-        .where(
-          (pr) => !(pr.isOnDevelop && pr.isOnUat && pr.isOnPreprod),
-        )
+        .where((pr) => !(pr.isOnDevelop && pr.isOnUat && pr.isOnPreprod))
         .toList();
-    final List<PullRequest> notClosed =
-        items.where((pr) => !pr.isTicketClosed).toList();
+    final List<PullRequest> notClosed = items
+        .where((pr) => !pr.isTicketClosed)
+        .toList();
     return DashboardState(notReleased: notReleased, notClosed: notClosed);
   });
 });

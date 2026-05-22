@@ -9,6 +9,7 @@ import 'package:pr_list/core/services/local_git_client.dart';
 import 'package:pr_list/core/services/pr_repository.dart';
 import 'package:pr_list/core/services/pr_sync_service.dart';
 import 'package:pr_list/core/services/provider_registry.dart';
+import 'package:pr_list/core/services/project_repository.dart';
 import 'package:pr_list/core/services/secure_storage_service.dart';
 import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/core/utils/failure.dart';
@@ -22,6 +23,9 @@ Future<Either<Failure, void>> initDependencies() async {
     getIt.registerLazySingleton<AppDatabase>(AppDatabase.new);
     getIt.registerLazySingleton<PrRepository>(
       () => PrRepository(getIt<AppDatabase>()),
+    );
+    getIt.registerLazySingleton<ProjectRepository>(
+      () => ProjectRepository(getIt<AppDatabase>()),
     );
 
     getIt.registerLazySingleton<GitProvider>(AzureDevOpsProvider.new);
@@ -40,6 +44,7 @@ Future<Either<Failure, void>> initDependencies() async {
         getIt<ProviderRegistry>(),
         getIt<GitClient>(),
         getIt<SecureStorageService>(),
+        getIt<ProjectRepository>(),
         getIt<Logger>(),
       ),
     );

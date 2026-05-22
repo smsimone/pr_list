@@ -4,9 +4,14 @@
   "tabDashboard": "Dashboard",
   "addPr": "Add PR",
   "editPr": "Edit PR",
+  "addProject": "Add project",
+  "editProject": "Edit project",
   "save": "Save",
   "cancel": "Cancel",
   "projectAlias": "Project alias",
+  "projectPath": "Project path",
+  "pickFolder": "Pick folder",
+  "createAlias": "Create alias",
   "branch": "Branch",
   "jiraTicket": "Jira ticket",
   "prLink": "PR link",
@@ -16,7 +21,9 @@
   "patRequired": "Azure PAT is required for sync",
   "azurePatTitle": "Azure PAT",
   "azurePatLabel": "PAT",
+  "tabProjects": "Projects",
+  "emptyProjects": "No projects yet",
+  "emptyState": "No PRs yet",
   "dashboardUnreleased": "Tickets not released",
-  "dashboardUnclosed": "Tickets not closed",
-  "emptyState": "No PRs yet"
+  "dashboardUnclosed": "Tickets not closed"
 }

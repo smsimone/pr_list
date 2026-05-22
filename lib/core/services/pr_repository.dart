@@ -36,7 +36,9 @@ class PrRepository {
     assert(branch.trim().isNotEmpty, 'branch must not be empty');
     final DateTime now = DateTime.now();
     try {
-      final int id = await _db.into(_db.pullRequests).insert(
+      final int id = await _db
+          .into(_db.pullRequests)
+          .insert(
             PullRequestsCompanion.insert(
               projectAlias: projectAlias,
               branch: branch,
@@ -96,7 +98,10 @@ class PrRepository {
     assert(id > 0, 'id must be greater than 0');
     assert(provider.trim().isNotEmpty, 'provider must not be empty');
     assert(providerPrId.trim().isNotEmpty, 'providerPrId must not be empty');
-    assert(providerStatus.trim().isNotEmpty, 'providerStatus must not be empty');
+    assert(
+      providerStatus.trim().isNotEmpty,
+      'providerStatus must not be empty',
+    );
     assert(lastCommitSha.trim().isNotEmpty, 'lastCommitSha must not be empty');
     try {
       await (_db.update(_db.pullRequests)..where((t) => t.id.equals(id))).write(
@@ -110,7 +115,9 @@ class PrRepository {
       );
       return const Either.right(null);
     } catch (err) {
-      return Either.left(Failure(message: 'Update provider failed', cause: err));
+      return Either.left(
+        Failure(message: 'Update provider failed', cause: err),
+      );
     }
   }
 

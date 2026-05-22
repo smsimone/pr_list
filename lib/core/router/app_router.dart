@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pr_list/features/dashboard/dashboard_page.dart';
 import 'package:pr_list/features/pr_list/pr_list_page.dart';
+import 'package:pr_list/features/projects/projects_page.dart';
 import 'package:pr_list/shared/widgets/app_scaffold.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey =
-    GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
@@ -21,6 +21,15 @@ final GoRouter appRouter = GoRouter(
               path: '/',
               name: 'pr-list',
               builder: (context, state) => const PrListPage(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: <RouteBase>[
+            GoRoute(
+              path: '/projects',
+              name: 'projects',
+              builder: (context, state) => const ProjectsPage(),
             ),
           ],
         ),
