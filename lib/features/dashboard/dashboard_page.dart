@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:pr_list/features/dashboard/dashboard_provider.dart';
 import 'package:pr_list/shared/widgets/empty_state.dart';
 import 'package:pr_list/shared/widgets/responsive_container.dart';
@@ -16,9 +16,7 @@ class DashboardPage extends ConsumerWidget {
     final stateAsync = ref.watch(dashboardProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.tabDashboard),
-      ),
+      appBar: AppBar(title: Text(l10n.tabDashboard)),
       body: stateAsync.when(
         data: (state) {
           return ResponsiveContainer(
@@ -67,7 +65,7 @@ class DashboardPage extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => EmptyState(message: l10n.emptyState),
+        error: (_, _) => EmptyState(message: l10n.emptyState),
       ),
     );
   }

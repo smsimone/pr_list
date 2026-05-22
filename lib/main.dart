@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
@@ -60,11 +60,7 @@ class _BootstrapErrorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     assert(true);
     return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Startup failed'),
-        ),
-      ),
+      home: Scaffold(body: Center(child: Text('Startup failed'))),
     );
   }
 }

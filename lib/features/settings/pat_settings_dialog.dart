@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:pr_list/core/services/secure_storage_service.dart';
 

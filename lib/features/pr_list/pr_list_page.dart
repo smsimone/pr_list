@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pr_list/core/db/app_database.dart';
+import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:pr_list/features/pr_list/pr_form_dialog.dart';
 import 'package:pr_list/features/pr_list/pr_list_providers.dart';
 import 'package:pr_list/features/settings/pat_settings_dialog.dart';
@@ -31,10 +31,8 @@ class PrListPage extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => showDialog(
-          context: context,
-          builder: (_) => const PrFormDialog(),
-        ),
+        onPressed: () =>
+            showDialog(context: context, builder: (_) => const PrFormDialog()),
         child: const Icon(Icons.add),
       ),
       body: Builder(
@@ -50,7 +48,7 @@ class PrListPage extends ConsumerWidget {
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: state.items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final PullRequest pr = state.items[index];
                 return Card(
@@ -69,18 +67,18 @@ class PrListPage extends ConsumerWidget {
                           Text('${l10n.lastCommit}: ${pr.lastCommitSha}'),
                       ],
                     ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (_) => PrFormDialog(existing: pr),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (_) => PrFormDialog(existing: pr),
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-        );
+                );
+              },
+            ),
+          );
         },
       ),
     );

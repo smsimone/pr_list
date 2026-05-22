@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pr_list/core/db/app_database.dart';
+import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:pr_list/features/pr_list/pr_list_providers.dart';
 
 class PrFormDialog extends ConsumerStatefulWidget {
@@ -24,14 +24,18 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   @override
   void initState() {
     super.initState();
-    _projectController =
-        TextEditingController(text: widget.existing?.projectAlias ?? '');
-    _branchController =
-        TextEditingController(text: widget.existing?.branch ?? '');
-    _ticketController =
-        TextEditingController(text: widget.existing?.jiraTicket ?? '');
-    _linkController =
-        TextEditingController(text: widget.existing?.prLink ?? '');
+    _projectController = TextEditingController(
+      text: widget.existing?.projectAlias ?? '',
+    );
+    _branchController = TextEditingController(
+      text: widget.existing?.branch ?? '',
+    );
+    _ticketController = TextEditingController(
+      text: widget.existing?.jiraTicket ?? '',
+    );
+    _linkController = TextEditingController(
+      text: widget.existing?.prLink ?? '',
+    );
     _ticketClosed = widget.existing?.isTicketClosed ?? false;
   }
 
@@ -76,9 +80,8 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                 controller: _branchController,
                 decoration: InputDecoration(labelText: l10n.branch),
                 onChanged: _onBranchChanged,
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? l10n.branch
-                    : null,
+                validator: (value) =>
+                    value == null || value.trim().isEmpty ? l10n.branch : null,
               ),
               const SizedBox(height: 12),
               TextFormField(

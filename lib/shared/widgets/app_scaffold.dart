@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 class AppScaffold extends StatelessWidget {
@@ -15,8 +15,7 @@ class AppScaffold extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) =>
-            navigationShell.goBranch(index),
+        onDestinationSelected: (index) => navigationShell.goBranch(index),
         destinations: <NavigationDestination>[
           NavigationDestination(
             icon: const Icon(Icons.list_alt),

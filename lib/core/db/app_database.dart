@@ -17,7 +17,8 @@ class PullRequests extends Table {
   TextColumn get providerPrId => text().nullable()();
   TextColumn get providerStatus => text().nullable()();
   TextColumn get lastCommitSha => text().nullable()();
-  BoolColumn get isTicketClosed => boolean().withDefault(const Constant(false))();
+  BoolColumn get isTicketClosed =>
+      boolean().withDefault(const Constant(false))();
   BoolColumn get isOnDevelop => boolean().withDefault(const Constant(false))();
   BoolColumn get isOnUat => boolean().withDefault(const Constant(false))();
   BoolColumn get isOnPreprod => boolean().withDefault(const Constant(false))();
@@ -39,16 +40,24 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => _migrations.last.version;
 
+  List<_MigrationStep> get _migrations => <_MigrationStep>[
+        _MigrationStep(
+          version: 1,
+          checksum: '20240522_init',
+          run: (Migrator m) async => m.createTable(pullRequests),
+        ),
+      ];
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (Migrator m) async {
-          await m.createTable(schemaMigrations);
-          await _applyMigrations(m, 0, schemaVersion);
-        },
-        onUpgrade: (Migrator m, int from, int to) async {
-          await _applyMigrations(m, from, to);
-        },
-      );
+    onCreate: (Migrator m) async {
+      await m.createTable(schemaMigrations);
+      await _applyMigrations(m, 0, schemaVersion);
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      await _applyMigrations(m, from, to);
+    },
+  );
 
   Future<void> _recordMigration(int version, String checksum) async {
     assert(version > 0, 'version must be greater than 0');
@@ -100,18 +109,6 @@ class _MigrationStep {
     required this.checksum,
     required this.run,
   });
-}
-
-const List<_MigrationStep> _migrations = <_MigrationStep>[
-  _MigrationStep(
-    version: 1,
-    checksum: '20240522_init',
-    run: _createV1,
-  ),
-];
-
-Future<void> _createV1(Migrator m) async {
-  await m.createTable(PullRequests());
 }
 
 LazyDatabase _openConnection() {
