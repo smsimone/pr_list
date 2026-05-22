@@ -154,4 +154,18 @@ class PrRepository {
       return Either.left(Failure(message: 'Delete PR failed', cause: err));
     }
   }
+
+  Future<Either<Failure, void>> deleteByProjectAlias(String alias) async {
+    assert(alias.trim().isNotEmpty, 'alias must not be empty');
+    try {
+      await (_db.delete(
+        _db.pullRequests,
+      )..where((tbl) => tbl.projectAlias.equals(alias))).go();
+      return const Either.right(null);
+    } catch (err) {
+      return Either.left(
+        Failure(message: 'Delete PRs by project alias failed', cause: err),
+      );
+    }
+  }
 }

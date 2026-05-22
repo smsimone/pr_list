@@ -21,6 +21,11 @@ class PrSyncService {
   final ProjectRepository _projectRepository;
   final Logger _logger;
   Timer? _pollingTimer;
+  Timer? _countdownTickTimer;
+  DateTime? _nextRunAt;
+  final StreamController<DateTime?> _nextRunController =
+      StreamController<DateTime?>.broadcast();
+  bool _isSyncRunning = false;
 
   PrSyncService(
     this._repository,
@@ -31,60 +36,84 @@ class PrSyncService {
     this._logger,
   );
 
+  Stream<DateTime?> get nextRunStream => _nextRunController.stream;
+  DateTime? get nextRunAt => _nextRunAt;
+  bool get isSyncRunning => _isSyncRunning;
+
   void start() {
-    _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(_kSyncInterval, (_) => _syncAll());
+    _schedulePeriodicSync();
   }
 
   void stop() {
     _pollingTimer?.cancel();
     _pollingTimer = null;
+    _countdownTickTimer?.cancel();
+    _countdownTickTimer = null;
+    _nextRunAt = null;
+    _nextRunController.add(null);
+  }
+
+  Future<void> triggerNowAndReset() async {
+    if (_isSyncRunning) {
+      return;
+    }
+    await _syncAll();
+    _schedulePeriodicSync();
   }
 
   Future<void> _syncAll() async {
-    _logger.info('Starting PR sync');
-    final Either<Failure, List<PullRequest>> result = await _loadPullRequests();
-    if (result.isLeft) {
-      _logger.warning('Failed to load PRs');
+    if (_isSyncRunning) {
       return;
     }
-
-    for (final PullRequest pr in result.right) {
-      if (pr.prLink == null || pr.prLink!.trim().isEmpty) {
-        continue;
-      }
-      final provider = _providerRegistry.match(pr.prLink!);
-      if (provider == null) {
-        continue;
-      }
-
-      final Either<Failure, String?> patResult = await _loadPat();
-      if (patResult.isLeft) {
-        _logger.warning('PAT read error');
-        continue;
-      }
-      final String? pat = patResult.right;
-      if (pat == null || pat.trim().isEmpty) {
-        _logger.warning('PAT missing');
-        continue;
+    _isSyncRunning = true;
+    try {
+      _logger.info('Starting PR sync');
+      final Either<Failure, List<PullRequest>> result =
+          await _loadPullRequests();
+      if (result.isLeft) {
+        _logger.warning('Failed to load PRs');
+        return;
       }
 
-      final Either<Failure, void> syncResult = await _syncProvider(
-        pr,
-        provider,
-        pat,
-      );
-      if (syncResult.isLeft) {
-        _logger.warning('Sync provider failed');
-        continue;
-      }
+      for (final PullRequest pr in result.right) {
+        if (pr.prLink == null || pr.prLink!.trim().isEmpty) {
+          continue;
+        }
+        final provider = _providerRegistry.match(pr.prLink!);
+        if (provider == null) {
+          continue;
+        }
 
-      final String? updatedStatus = await _loadProviderStatus(pr.id);
-      if (updatedStatus == 'completed') {
-        final String? lastCommit = await _loadLastCommit(pr.id);
-        final String? workingDir = await _resolveWorkingDirectory(pr);
-        await _syncEnvironments(pr.id, lastCommit, workingDir);
+        final Either<Failure, String?> patResult = await _loadPat();
+        if (patResult.isLeft) {
+          _logger.warning('PAT read error');
+          continue;
+        }
+        final String? pat = patResult.right;
+        if (pat == null || pat.trim().isEmpty) {
+          _logger.warning('PAT missing');
+          continue;
+        }
+
+        final Either<Failure, void> syncResult = await _syncProvider(
+          pr,
+          provider,
+          pat,
+        );
+        if (syncResult.isLeft) {
+          _logger.warning('Sync provider failed');
+          continue;
+        }
+
+        final String? updatedStatus = await _loadProviderStatus(pr.id);
+        if (updatedStatus == 'completed') {
+          final String? lastCommit = await _loadLastCommit(pr.id);
+          final String? workingDir = await _resolveWorkingDirectory(pr);
+          await _syncEnvironments(pr.id, lastCommit, workingDir);
+        }
       }
+    } finally {
+      _isSyncRunning = false;
     }
   }
 
@@ -189,5 +218,20 @@ class PrSyncService {
       return null;
     }
     return result.right?.path;
+  }
+
+  void _schedulePeriodicSync() {
+    _pollingTimer?.cancel();
+    _countdownTickTimer?.cancel();
+    _nextRunAt = DateTime.now().add(_kSyncInterval);
+    _nextRunController.add(_nextRunAt);
+    _countdownTickTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _nextRunController.add(_nextRunAt);
+    });
+    _pollingTimer = Timer.periodic(_kSyncInterval, (_) async {
+      await _syncAll();
+      _nextRunAt = DateTime.now().add(_kSyncInterval);
+      _nextRunController.add(_nextRunAt);
+    });
   }
 }

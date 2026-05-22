@@ -164,6 +164,48 @@ abstract class AppLocalizations {
   /// **'Project path'**
   String get projectPath;
 
+  /// No description provided for @validationProjectAliasRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Project alias is required'**
+  String get validationProjectAliasRequired;
+
+  /// No description provided for @validationProjectPathRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Project path is required'**
+  String get validationProjectPathRequired;
+
+  /// No description provided for @validationProjectPathMustBeAbsolute.
+  ///
+  /// In en, this message translates to:
+  /// **'Path must be absolute'**
+  String get validationProjectPathMustBeAbsolute;
+
+  /// No description provided for @validationProjectPathNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder does not exist'**
+  String get validationProjectPathNotFound;
+
+  /// No description provided for @validationProjectRepoInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid git repository'**
+  String get validationProjectRepoInvalid;
+
+  /// No description provided for @validationProjectMissingRemote.
+  ///
+  /// In en, this message translates to:
+  /// **'Git repository has no configured remotes'**
+  String get validationProjectMissingRemote;
+
+  /// No description provided for @validationProjectNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Project not found'**
+  String get validationProjectNotFound;
+
   /// No description provided for @pickFolder.
   ///
   /// In en, this message translates to:
@@ -182,6 +224,24 @@ abstract class AppLocalizations {
   /// **'Branch'**
   String get branch;
 
+  /// No description provided for @validationBranchRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch is required'**
+  String get validationBranchRequired;
+
+  /// No description provided for @validationBranchNoSpaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch cannot contain spaces'**
+  String get validationBranchNoSpaces;
+
+  /// No description provided for @validationBranchNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch does not exist in project repository'**
+  String get validationBranchNotFound;
+
   /// No description provided for @jiraTicket.
   ///
   /// In en, this message translates to:
@@ -194,11 +254,107 @@ abstract class AppLocalizations {
   /// **'PR link'**
   String get prLink;
 
+  /// No description provided for @validationInvalidPrUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid PR URL'**
+  String get validationInvalidPrUrl;
+
   /// No description provided for @ticketClosed.
   ///
   /// In en, this message translates to:
   /// **'Ticket closed'**
   String get ticketClosed;
+
+  /// No description provided for @viewList.
+  ///
+  /// In en, this message translates to:
+  /// **'List view'**
+  String get viewList;
+
+  /// No description provided for @viewKanban.
+  ///
+  /// In en, this message translates to:
+  /// **'Kanban view'**
+  String get viewKanban;
+
+  /// No description provided for @laneUnreleased.
+  ///
+  /// In en, this message translates to:
+  /// **'Unreleased'**
+  String get laneUnreleased;
+
+  /// No description provided for @laneDev.
+  ///
+  /// In en, this message translates to:
+  /// **'Dev'**
+  String get laneDev;
+
+  /// No description provided for @laneUat.
+  ///
+  /// In en, this message translates to:
+  /// **'UAT'**
+  String get laneUat;
+
+  /// No description provided for @lanePreprod.
+  ///
+  /// In en, this message translates to:
+  /// **'Preprod'**
+  String get lanePreprod;
+
+  /// No description provided for @schedulerNotScheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync not scheduled'**
+  String get schedulerNotScheduled;
+
+  /// No description provided for @schedulerCountdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Next run in {minutes}m {seconds}s'**
+  String schedulerCountdown(int minutes, int seconds);
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @deletePrTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete PR?'**
+  String get deletePrTitle;
+
+  /// No description provided for @deletePrMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This action cannot be undone.'**
+  String get deletePrMessage;
+
+  /// No description provided for @deleteProjectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete project?'**
+  String get deleteProjectTitle;
+
+  /// No description provided for @deleteProjectMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'All linked PRs will also be deleted.'**
+  String get deleteProjectMessage;
+
+  /// No description provided for @genericSaveError.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed'**
+  String get genericSaveError;
+
+  /// No description provided for @genericDeleteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete failed'**
+  String get genericDeleteError;
 
   /// No description provided for @providerStatus.
   ///

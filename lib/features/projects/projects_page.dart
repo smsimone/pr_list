@@ -44,12 +44,23 @@ class ProjectsPage extends ConsumerWidget {
                   child: ListTile(
                     title: Text(project.alias),
                     subtitle: Text(project.path),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () => showDialog(
-                        context: context,
-                        builder: (_) => ProjectFormDialog(existing: project),
-                      ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => showDialog(
+                            context: context,
+                            builder: (_) =>
+                                ProjectFormDialog(existing: project),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () =>
+                              _confirmDeleteProject(context, ref, project.id),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -59,5 +70,41 @@ class ProjectsPage extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  Future<void> _confirmDeleteProject(
+    BuildContext context,
+    WidgetRef ref,
+    int projectId,
+  ) async {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l10n.deleteProjectTitle),
+        content: Text(l10n.deleteProjectMessage),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (shouldDelete != true || !context.mounted) {
+      return;
+    }
+    final result = await ref
+        .read(projectsNotifierProvider.notifier)
+        .deleteProject(projectId);
+    if (result.isLeft && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.genericDeleteError)));
+    }
   }
 }

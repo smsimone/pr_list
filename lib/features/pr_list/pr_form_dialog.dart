@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pr_list/core/db/app_database.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:pr_list/features/pr_list/pr_list_providers.dart';
+import 'package:pr_list/features/pr_list/pr_list_notifier.dart';
 import 'package:pr_list/features/projects/project_form_dialog.dart';
 import 'package:pr_list/features/projects/projects_providers.dart';
 
@@ -22,6 +23,8 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   late TextEditingController _ticketController;
   late TextEditingController _linkController;
   bool _ticketClosed = false;
+  bool _isSaving = false;
+  String? _submitError;
 
   @override
   void initState() {
@@ -39,10 +42,12 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
       text: widget.existing?.prLink ?? '',
     );
     _ticketClosed = widget.existing?.isTicketClosed ?? false;
+    _ticketController.addListener(_onTicketChanged);
   }
 
   @override
   void dispose() {
+    _ticketController.removeListener(_onTicketChanged);
     _projectController.dispose();
     _branchController.dispose();
     _ticketController.dispose();
@@ -54,6 +59,51 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     if (value.startsWith('fix/NFSN-') &&
         _ticketController.text.trim().isEmpty) {
       _ticketController.text = 'NFSN-****';
+    }
+  }
+
+  void _onTicketChanged() {
+    if (_ticketController.text.trim().isEmpty && _ticketClosed) {
+      setState(() => _ticketClosed = false);
+    }
+  }
+
+  String? _validateBranch(String? value, AppLocalizations l10n) {
+    final String branch = value?.trim() ?? '';
+    if (branch.isEmpty) {
+      return l10n.validationBranchRequired;
+    }
+    if (branch.contains(RegExp(r'\s'))) {
+      return l10n.validationBranchNoSpaces;
+    }
+    return null;
+  }
+
+  String? _validatePrLink(String? value, AppLocalizations l10n) {
+    final String link = value?.trim() ?? '';
+    if (link.isEmpty) {
+      return null;
+    }
+    final Uri? uri = Uri.tryParse(link);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+      return l10n.validationInvalidPrUrl;
+    }
+    return null;
+  }
+
+  String _resolveSubmitError(
+    AppLocalizations l10n,
+    PrOperationException exception,
+  ) {
+    switch (exception.code) {
+      case PrOperationErrorCode.projectNotFound:
+        return l10n.validationProjectNotFound;
+      case PrOperationErrorCode.invalidProjectRepository:
+        return l10n.validationProjectRepoInvalid;
+      case PrOperationErrorCode.branchNotFound:
+        return l10n.validationBranchNotFound;
+      case PrOperationErrorCode.persistenceFailure:
+        return l10n.genericSaveError;
     }
   }
 
@@ -142,72 +192,108 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                 controller: _branchController,
                 decoration: InputDecoration(labelText: l10n.branch),
                 onChanged: _onBranchChanged,
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? l10n.branch : null,
+                validator: (value) => _validateBranch(value, l10n),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _ticketController,
                 decoration: InputDecoration(labelText: l10n.jiraTicket),
+                onChanged: (_) {
+                  if (_submitError != null) {
+                    setState(() => _submitError = null);
+                  }
+                },
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _linkController,
                 decoration: InputDecoration(labelText: l10n.prLink),
+                validator: (value) => _validatePrLink(value, l10n),
               ),
               const SizedBox(height: 12),
               CheckboxListTile(
                 value: _ticketClosed,
-                onChanged: (value) {
-                  setState(() => _ticketClosed = value ?? false);
-                },
+                onChanged: _ticketController.text.trim().isEmpty
+                    ? null
+                    : (value) {
+                        setState(() => _ticketClosed = value ?? false);
+                      },
                 title: Text(l10n.ticketClosed),
                 controlAffinity: ListTileControlAffinity.leading,
               ),
+              if (_submitError != null) ...<Widget>[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _submitError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
       actions: <Widget>[
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
         FilledButton(
-          onPressed: () async {
-            if (!_formKey.currentState!.validate()) {
-              return;
-            }
-            final notifier = ref.read(prListNotifierProvider.notifier);
-            if (widget.existing == null) {
-              await notifier.addPr(
-                projectAlias: _projectController.text.trim(),
-                branch: _branchController.text.trim(),
-                jiraTicket: _ticketController.text.trim().isEmpty
-                    ? null
-                    : _ticketController.text.trim(),
-                prLink: _linkController.text.trim().isEmpty
-                    ? null
-                    : _linkController.text.trim(),
-              );
-            } else {
-              await notifier.updatePr(
-                id: widget.existing!.id,
-                projectAlias: _projectController.text.trim(),
-                branch: _branchController.text.trim(),
-                jiraTicket: _ticketController.text.trim().isEmpty
-                    ? null
-                    : _ticketController.text.trim(),
-                prLink: _linkController.text.trim().isEmpty
-                    ? null
-                    : _linkController.text.trim(),
-                isTicketClosed: _ticketClosed,
-              );
-            }
-            if (context.mounted) {
-              Navigator.of(context).pop();
-            }
-          },
+          onPressed: _isSaving
+              ? null
+              : () async {
+                  if (!_formKey.currentState!.validate()) {
+                    return;
+                  }
+                  setState(() {
+                    _isSaving = true;
+                    _submitError = null;
+                  });
+                  final notifier = ref.read(prListNotifierProvider.notifier);
+                  final String? jiraTicket =
+                      _ticketController.text.trim().isEmpty
+                      ? null
+                      : _ticketController.text.trim();
+                  final String? prLink = _linkController.text.trim().isEmpty
+                      ? null
+                      : _linkController.text.trim();
+                  final result = widget.existing == null
+                      ? await notifier.addPr(
+                          projectAlias: _projectController.text.trim(),
+                          branch: _branchController.text.trim(),
+                          jiraTicket: jiraTicket,
+                          prLink: prLink,
+                        )
+                      : await notifier.updatePr(
+                          id: widget.existing!.id,
+                          projectAlias: _projectController.text.trim(),
+                          branch: _branchController.text.trim(),
+                          jiraTicket: jiraTicket,
+                          prLink: prLink,
+                          isTicketClosed: _ticketClosed,
+                        );
+                  if (!mounted) {
+                    return;
+                  }
+                  final AppLocalizations currentL10n = AppLocalizations.of(
+                    this.context,
+                  )!;
+                  if (result.isLeft) {
+                    setState(() {
+                      _isSaving = false;
+                      _submitError = _resolveSubmitError(
+                        currentL10n,
+                        result.left,
+                      );
+                    });
+                    return;
+                  }
+                  Navigator.of(this.context).pop();
+                },
           child: Text(l10n.save),
         ),
       ],

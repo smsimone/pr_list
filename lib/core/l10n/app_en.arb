@@ -10,12 +10,48 @@
   "cancel": "Cancel",
   "projectAlias": "Project alias",
   "projectPath": "Project path",
+  "validationProjectAliasRequired": "Project alias is required",
+  "validationProjectPathRequired": "Project path is required",
+  "validationProjectPathMustBeAbsolute": "Path must be absolute",
+  "validationProjectPathNotFound": "Folder does not exist",
+  "validationProjectRepoInvalid": "Invalid git repository",
+  "validationProjectMissingRemote": "Git repository has no configured remotes",
+  "validationProjectNotFound": "Project not found",
   "pickFolder": "Pick folder",
   "createAlias": "Create alias",
   "branch": "Branch",
+  "validationBranchRequired": "Branch is required",
+  "validationBranchNoSpaces": "Branch cannot contain spaces",
+  "validationBranchNotFound": "Branch does not exist in project repository",
   "jiraTicket": "Jira ticket",
   "prLink": "PR link",
+  "validationInvalidPrUrl": "Invalid PR URL",
   "ticketClosed": "Ticket closed",
+  "viewList": "List view",
+  "viewKanban": "Kanban view",
+  "laneUnreleased": "Unreleased",
+  "laneDev": "Dev",
+  "laneUat": "UAT",
+  "lanePreprod": "Preprod",
+  "schedulerNotScheduled": "Sync not scheduled",
+  "schedulerCountdown": "Next run in {minutes}m {seconds}s",
+  "@schedulerCountdown": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "delete": "Delete",
+  "deletePrTitle": "Delete PR?",
+  "deletePrMessage": "This action cannot be undone.",
+  "deleteProjectTitle": "Delete project?",
+  "deleteProjectMessage": "All linked PRs will also be deleted.",
+  "genericSaveError": "Save failed",
+  "genericDeleteError": "Delete failed",
   "providerStatus": "PR status",
   "lastCommit": "Last commit SHA",
   "patRequired": "Azure PAT is required for sync",

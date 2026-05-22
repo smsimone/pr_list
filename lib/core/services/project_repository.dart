@@ -33,6 +33,17 @@ class ProjectRepository {
     }
   }
 
+  Future<Either<Failure, Project?>> getById(int id) async {
+    assert(id > 0, 'id must be greater than 0');
+    try {
+      final query = _db.select(_db.projects)..where((tbl) => tbl.id.equals(id));
+      final Project? item = await query.getSingleOrNull();
+      return Either.right(item);
+    } catch (err) {
+      return Either.left(Failure(message: 'Load project failed', cause: err));
+    }
+  }
+
   Future<Either<Failure, int>> create({
     required String alias,
     required String path,

@@ -10,12 +10,48 @@
   "cancel": "Annulla",
   "projectAlias": "Alias progetto",
   "projectPath": "Percorso progetto",
+  "validationProjectAliasRequired": "Alias progetto obbligatorio",
+  "validationProjectPathRequired": "Percorso progetto obbligatorio",
+  "validationProjectPathMustBeAbsolute": "Il percorso deve essere assoluto",
+  "validationProjectPathNotFound": "La cartella non esiste",
+  "validationProjectRepoInvalid": "Repository git non valido",
+  "validationProjectMissingRemote": "Il repository non ha remote configurati",
+  "validationProjectNotFound": "Progetto non trovato",
   "pickFolder": "Scegli cartella",
   "createAlias": "Crea alias",
   "branch": "Branch",
+  "validationBranchRequired": "Branch obbligatorio",
+  "validationBranchNoSpaces": "Il branch non può contenere spazi",
+  "validationBranchNotFound": "Branch non presente nella repository del progetto",
   "jiraTicket": "Ticket Jira",
   "prLink": "Link PR",
+  "validationInvalidPrUrl": "URL PR non valido",
   "ticketClosed": "Ticket chiuso",
+  "viewList": "Vista lista",
+  "viewKanban": "Vista kanban",
+  "laneUnreleased": "Non rilasciato",
+  "laneDev": "Dev",
+  "laneUat": "UAT",
+  "lanePreprod": "Preprod",
+  "schedulerNotScheduled": "Sync non pianificata",
+  "schedulerCountdown": "Prossimo giro tra {minutes}m {seconds}s",
+  "@schedulerCountdown": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "delete": "Elimina",
+  "deletePrTitle": "Eliminare PR?",
+  "deletePrMessage": "Questa azione non può essere annullata.",
+  "deleteProjectTitle": "Eliminare progetto?",
+  "deleteProjectMessage": "Verranno eliminate anche tutte le PR collegate.",
+  "genericSaveError": "Salvataggio non riuscito",
+  "genericDeleteError": "Eliminazione non riuscita",
   "providerStatus": "Stato PR",
   "lastCommit": "Ultimo commit SHA",
   "patRequired": "Azure PAT richiesto per la sync",

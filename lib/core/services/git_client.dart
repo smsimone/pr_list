@@ -6,4 +6,11 @@ abstract class GitClient {
     String commitSha, {
     required String workingDirectory,
   });
+
+  Future<Either<Failure, bool>> branchExists(
+    String branch, {
+    required String workingDirectory,
+  });
+
+  Future<Either<Failure, bool>> hasRemote({required String workingDirectory});
 }

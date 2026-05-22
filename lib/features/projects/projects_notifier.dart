@@ -2,15 +2,19 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pr_list/core/db/app_database.dart';
+import 'package:pr_list/core/services/pr_repository.dart';
 import 'package:pr_list/core/services/project_repository.dart';
 import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/features/projects/projects_state.dart';
 
 class ProjectsNotifier extends StateNotifier<ProjectsState> {
   final ProjectRepository _repository;
+  final PrRepository _prRepository;
+  final AppDatabase _db;
   StreamSubscription<List<Project>>? _subscription;
 
-  ProjectsNotifier(this._repository) : super(ProjectsState.initial()) {
+  ProjectsNotifier(this._repository, this._prRepository, this._db)
+    : super(ProjectsState.initial()) {
     _subscription = _repository.watchAll().listen(
       (items) {
         state = state.copyWith(items: items, isLoading: false);
@@ -60,9 +64,31 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
 
   Future<Either<Exception, void>> deleteProject(int id) async {
     assert(id > 0, 'id must be greater than 0');
-    final result = await _repository.delete(id);
-    if (result.isLeft) {
-      return Either.left(Exception(result.left.message));
+    try {
+      await _db.transaction(() async {
+        final projectResult = await _repository.getById(id);
+        if (projectResult.isLeft) {
+          throw Exception(projectResult.left.message);
+        }
+        final Project? project = projectResult.right;
+        if (project == null) {
+          throw Exception('Project not found');
+        }
+
+        final deletePrsResult = await _prRepository.deleteByProjectAlias(
+          project.alias,
+        );
+        if (deletePrsResult.isLeft) {
+          throw Exception(deletePrsResult.left.message);
+        }
+
+        final deleteProjectResult = await _repository.delete(id);
+        if (deleteProjectResult.isLeft) {
+          throw Exception(deleteProjectResult.left.message);
+        }
+      });
+    } catch (err) {
+      return Either.left(Exception('Delete project failed: $err'));
     }
     return const Either.right(null);
   }

@@ -42,6 +42,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectPath => 'Project path';
 
   @override
+  String get validationProjectAliasRequired => 'Project alias is required';
+
+  @override
+  String get validationProjectPathRequired => 'Project path is required';
+
+  @override
+  String get validationProjectPathMustBeAbsolute => 'Path must be absolute';
+
+  @override
+  String get validationProjectPathNotFound => 'Folder does not exist';
+
+  @override
+  String get validationProjectRepoInvalid => 'Invalid git repository';
+
+  @override
+  String get validationProjectMissingRemote =>
+      'Git repository has no configured remotes';
+
+  @override
+  String get validationProjectNotFound => 'Project not found';
+
+  @override
   String get pickFolder => 'Pick folder';
 
   @override
@@ -51,13 +73,73 @@ class AppLocalizationsEn extends AppLocalizations {
   String get branch => 'Branch';
 
   @override
+  String get validationBranchRequired => 'Branch is required';
+
+  @override
+  String get validationBranchNoSpaces => 'Branch cannot contain spaces';
+
+  @override
+  String get validationBranchNotFound =>
+      'Branch does not exist in project repository';
+
+  @override
   String get jiraTicket => 'Jira ticket';
 
   @override
   String get prLink => 'PR link';
 
   @override
+  String get validationInvalidPrUrl => 'Invalid PR URL';
+
+  @override
   String get ticketClosed => 'Ticket closed';
+
+  @override
+  String get viewList => 'List view';
+
+  @override
+  String get viewKanban => 'Kanban view';
+
+  @override
+  String get laneUnreleased => 'Unreleased';
+
+  @override
+  String get laneDev => 'Dev';
+
+  @override
+  String get laneUat => 'UAT';
+
+  @override
+  String get lanePreprod => 'Preprod';
+
+  @override
+  String get schedulerNotScheduled => 'Sync not scheduled';
+
+  @override
+  String schedulerCountdown(int minutes, int seconds) {
+    return 'Next run in ${minutes}m ${seconds}s';
+  }
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get deletePrTitle => 'Delete PR?';
+
+  @override
+  String get deletePrMessage => 'This action cannot be undone.';
+
+  @override
+  String get deleteProjectTitle => 'Delete project?';
+
+  @override
+  String get deleteProjectMessage => 'All linked PRs will also be deleted.';
+
+  @override
+  String get genericSaveError => 'Save failed';
+
+  @override
+  String get genericDeleteError => 'Delete failed';
 
   @override
   String get providerStatus => 'PR status';

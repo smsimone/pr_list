@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pr_list/core/db/app_database.dart';
+import 'package:pr_list/core/di/injection_container.dart';
+import 'package:pr_list/core/l10n/app_localizations.dart';
+import 'package:pr_list/core/services/git_client.dart';
 import 'package:pr_list/features/projects/projects_providers.dart';
+import 'package:path/path.dart' as p;
 
 class ProjectFormDialog extends ConsumerStatefulWidget {
   final Project? existing;
@@ -19,6 +24,8 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late TextEditingController _aliasController;
   late TextEditingController _pathController;
+  bool _isSaving = false;
+  String? _submitError;
 
   @override
   void initState() {
@@ -61,7 +68,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
                 controller: _aliasController,
                 decoration: InputDecoration(labelText: l10n.projectAlias),
                 validator: (value) => value == null || value.trim().isEmpty
-                    ? l10n.projectAlias
+                    ? l10n.validationProjectAliasRequired
                     : null,
               ),
               const SizedBox(height: 12),
@@ -71,10 +78,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
                     child: TextFormField(
                       controller: _pathController,
                       decoration: InputDecoration(labelText: l10n.projectPath),
-                      validator: (value) =>
-                          value == null || value.trim().isEmpty
-                          ? l10n.projectPath
-                          : null,
+                      validator: (value) => _validatePath(value, l10n),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -84,40 +88,101 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
                   ),
                 ],
               ),
+              if (_submitError != null) ...<Widget>[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _submitError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
       actions: <Widget>[
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
         FilledButton(
-          onPressed: () async {
-            if (!_formKey.currentState!.validate()) {
-              return;
-            }
-            final notifier = ref.read(projectsNotifierProvider.notifier);
-            if (widget.existing == null) {
-              await notifier.addProject(
-                alias: _aliasController.text.trim(),
-                path: _pathController.text.trim(),
-              );
-            } else {
-              await notifier.updateProject(
-                id: widget.existing!.id,
-                alias: _aliasController.text.trim(),
-                path: _pathController.text.trim(),
-              );
-            }
-            if (context.mounted) {
-              Navigator.of(context).pop();
-            }
-          },
+          onPressed: _isSaving ? null : () => _saveProject(l10n),
           child: Text(l10n.save),
         ),
       ],
     );
+  }
+
+  String? _validatePath(String? value, AppLocalizations l10n) {
+    final String path = value?.trim() ?? '';
+    if (path.isEmpty) {
+      return l10n.validationProjectPathRequired;
+    }
+    if (!p.isAbsolute(path)) {
+      return l10n.validationProjectPathMustBeAbsolute;
+    }
+    final Directory dir = Directory(path);
+    if (!dir.existsSync()) {
+      return l10n.validationProjectPathNotFound;
+    }
+    return null;
+  }
+
+  Future<void> _saveProject(AppLocalizations l10n) async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    setState(() {
+      _isSaving = true;
+      _submitError = null;
+    });
+    final GitClient gitClient = getIt<GitClient>();
+    final hasRemoteResult = await gitClient.hasRemote(
+      workingDirectory: _pathController.text.trim(),
+    );
+    if (!mounted) {
+      return;
+    }
+    if (hasRemoteResult.isLeft) {
+      setState(() {
+        _isSaving = false;
+        _submitError = l10n.validationProjectRepoInvalid;
+      });
+      return;
+    }
+    if (!hasRemoteResult.right) {
+      setState(() {
+        _isSaving = false;
+        _submitError = l10n.validationProjectMissingRemote;
+      });
+      return;
+    }
+
+    final notifier = ref.read(projectsNotifierProvider.notifier);
+    final result = widget.existing == null
+        ? await notifier.addProject(
+            alias: _aliasController.text.trim(),
+            path: _pathController.text.trim(),
+          )
+        : await notifier.updateProject(
+            id: widget.existing!.id,
+            alias: _aliasController.text.trim(),
+            path: _pathController.text.trim(),
+          );
+    if (!mounted) {
+      return;
+    }
+    if (result.isLeft) {
+      setState(() {
+        _isSaving = false;
+        _submitError = l10n.genericSaveError;
+      });
+      return;
+    }
+    Navigator.of(context).pop();
   }
 }
