@@ -13,4 +13,9 @@ abstract class GitClient {
   });
 
   Future<Either<Failure, bool>> hasRemote({required String workingDirectory});
+
+  Future<Either<Failure, List<String>>> listBranches({
+    required String workingDirectory,
+    bool fetch = false,
+  });
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pr_list/core/db/app_database.dart';
+import 'package:pr_list/core/di/injection_container.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
+import 'package:pr_list/core/services/branch_cache_service.dart';
 import 'package:pr_list/features/pr_list/pr_list_providers.dart';
 import 'package:pr_list/features/pr_list/pr_list_notifier.dart';
 import 'package:pr_list/features/projects/project_form_dialog.dart';
@@ -25,6 +27,8 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   bool _ticketClosed = false;
   bool _isSaving = false;
   String? _submitError;
+  List<String> _branches = [];
+  bool _branchesLoading = false;
 
   @override
   void initState() {
@@ -43,6 +47,10 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     );
     _ticketClosed = widget.existing?.isTicketClosed ?? false;
     _ticketController.addListener(_onTicketChanged);
+
+    if (widget.existing != null) {
+      _loadBranches(widget.existing!.projectAlias);
+    }
   }
 
   @override
@@ -66,6 +74,29 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     if (_ticketController.text.trim().isEmpty && _ticketClosed) {
       setState(() => _ticketClosed = false);
     }
+  }
+
+  Future<void> _loadBranches(String projectAlias) async {
+    final Project? project = ref
+        .read(projectsNotifierProvider)
+        .items
+        .where((p) => p.alias == projectAlias)
+        .firstOrNull;
+    if (project == null) return;
+
+    setState(() => _branchesLoading = true);
+
+    final BranchCacheService cacheService = getIt<BranchCacheService>();
+    final result = await cacheService.getBranches(project.path);
+
+    if (!mounted) return;
+
+    setState(() {
+      if (result.isRight) {
+        _branches = result.right;
+      }
+      _branchesLoading = false;
+    });
   }
 
   String? _validateBranch(String? value, AppLocalizations l10n) {
@@ -144,6 +175,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                       },
                       onSelected: (value) {
                         _projectController.text = value;
+                        _loadBranches(value);
                       },
                       fieldViewBuilder:
                           (
@@ -188,11 +220,60 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                 ],
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _branchController,
-                decoration: InputDecoration(labelText: l10n.branch),
-                onChanged: _onBranchChanged,
-                validator: (value) => _validateBranch(value, l10n),
+              Autocomplete<String>(
+                initialValue: TextEditingValue(
+                  text: _branchController.text,
+                ),
+                optionsBuilder: (TextEditingValue value) {
+                  if (_branchesLoading || _branches.isEmpty) {
+                    return <String>[];
+                  }
+                  final String query = value.text.trim().toLowerCase();
+                  if (query.isEmpty) {
+                    return _branches;
+                  }
+                  return _branches
+                      .where((b) => b.toLowerCase().contains(query))
+                      .toList();
+                },
+                onSelected: (String value) {
+                  _branchController.text = value;
+                  _onBranchChanged(value);
+                },
+                fieldViewBuilder:
+                    (
+                      context,
+                      textController,
+                      focusNode,
+                      onFieldSubmitted,
+                    ) {
+                  if (textController.text != _branchController.text) {
+                    textController.text = _branchController.text;
+                  }
+                  return TextFormField(
+                    controller: textController,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      labelText: l10n.branch,
+                      suffixIcon: _branchesLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: Padding(
+                                padding: EdgeInsets.all(12),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                    validator: (value) => _validateBranch(value, l10n),
+                    onChanged: (value) {
+                      _branchController.text = value;
+                    },
+                  );
+                },
               ),
               const SizedBox(height: 12),
               TextFormField(

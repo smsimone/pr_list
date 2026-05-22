@@ -7,10 +7,13 @@ import 'package:pr_list/features/dashboard/dashboard_state.dart';
 final dashboardProvider = StreamProvider<DashboardState>((ref) {
   final PrRepository repository = getIt<PrRepository>();
   return repository.watchAll().map((List<PullRequest> items) {
-    final List<PullRequest> notReleased = items
+    final List<PullRequest> withJira = items
+        .where((pr) => pr.jiraTicket != null && pr.jiraTicket!.isNotEmpty)
+        .toList();
+    final List<PullRequest> notReleased = withJira
         .where((pr) => !(pr.isOnDevelop && pr.isOnUat && pr.isOnPreprod))
         .toList();
-    final List<PullRequest> notClosed = items
+    final List<PullRequest> notClosed = withJira
         .where((pr) => !pr.isTicketClosed)
         .toList();
     return DashboardState(notReleased: notReleased, notClosed: notClosed);

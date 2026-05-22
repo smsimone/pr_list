@@ -115,6 +115,55 @@ class LocalGitClient implements GitClient {
     }
   }
 
+  @override
+  Future<Either<Failure, List<String>>> listBranches({
+    required String workingDirectory,
+    bool fetch = false,
+  }) async {
+    assert(
+      workingDirectory.trim().isNotEmpty,
+      'workingDirectory must not be empty',
+    );
+    try {
+      if (fetch) {
+        final ProcessResult fetchResult = await Process.run(
+          'git',
+          <String>['fetch', '--prune', 'origin'],
+          workingDirectory: workingDirectory,
+          runInShell: true,
+        );
+        if (fetchResult.exitCode != 0) {
+          return Either.left(
+            Failure(message: 'git fetch failed', cause: fetchResult.stderr),
+          );
+        }
+      }
+
+      final ProcessResult result = await Process.run(
+        'git',
+        <String>['branch', '-a'],
+        workingDirectory: workingDirectory,
+        runInShell: true,
+      );
+      if (result.exitCode != 0) {
+        return Either.left(
+          Failure(message: 'git branch -a failed', cause: result.stderr),
+        );
+      }
+
+      final String output = result.stdout.toString();
+      final List<String> branches = output
+          .split('\n')
+          .map((String line) => _normalizeBranchName(line))
+          .where((String line) => line.isNotEmpty)
+          .toSet()
+          .toList();
+      return Either.right(branches);
+    } catch (err) {
+      return Either.left(Failure(message: 'git command error', cause: err));
+    }
+  }
+
   String _normalizeBranchName(String branch) {
     String normalized = branch.replaceFirst('*', '').trim();
     normalized = normalized.replaceFirst('remotes/', '');
