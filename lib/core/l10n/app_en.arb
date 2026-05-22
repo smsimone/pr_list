@@ -1,0 +1,22 @@
+{
+  "appTitle": "PR List",
+  "tabPrList": "PR List",
+  "tabDashboard": "Dashboard",
+  "addPr": "Add PR",
+  "editPr": "Edit PR",
+  "save": "Save",
+  "cancel": "Cancel",
+  "projectAlias": "Project alias",
+  "branch": "Branch",
+  "jiraTicket": "Jira ticket",
+  "prLink": "PR link",
+  "ticketClosed": "Ticket closed",
+  "providerStatus": "PR status",
+  "lastCommit": "Last commit SHA",
+  "patRequired": "Azure PAT is required for sync",
+  "azurePatTitle": "Azure PAT",
+  "azurePatLabel": "PAT",
+  "dashboardUnreleased": "Tickets not released",
+  "dashboardUnclosed": "Tickets not closed",
+  "emptyState": "No PRs yet"
+}
