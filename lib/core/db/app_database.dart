@@ -11,7 +11,6 @@ part 'app_database.g.dart';
 class PullRequests extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get projectAlias => text()();
-  TextColumn get branch => text()();
   TextColumn get jiraTicket => text().nullable()();
   TextColumn get prLink => text().nullable()();
   TextColumn get provider => text().nullable()();
@@ -20,9 +19,6 @@ class PullRequests extends Table {
   TextColumn get lastCommitSha => text().nullable()();
   BoolColumn get isTicketClosed =>
       boolean().withDefault(const Constant(false))();
-  BoolColumn get isOnDevelop => boolean().withDefault(const Constant(false))();
-  BoolColumn get isOnUat => boolean().withDefault(const Constant(false))();
-  BoolColumn get isOnPreprod => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 }
@@ -55,7 +51,24 @@ class EnvironmentMappings extends Table {
   TextColumn get branchPattern => text()();
 }
 
-@DriftDatabase(tables: [PullRequests, SchemaMigrations, Projects, EnvironmentMappings])
+class PrEnvFlags extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get prId => integer().references(PullRequests, #id)();
+  IntColumn get envMappingId => integer().references(EnvironmentMappings, #id)();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {prId, envMappingId},
+  ];
+}
+
+@DriftDatabase(tables: [
+  PullRequests,
+  SchemaMigrations,
+  Projects,
+  EnvironmentMappings,
+  PrEnvFlags,
+])
 class AppDatabase extends _$AppDatabase {
   final _logger = Logger('AppDatabase');
 
@@ -69,8 +82,11 @@ class AppDatabase extends _$AppDatabase {
   List<_MigrationStep> get _migrations => [
     _MigrationStep(
       version: 1,
-      checksum: '20240522_init',
-      run: (Migrator m) async => m.createTable(pullRequests),
+      checksum: '20240522_init_clean',
+      run: (Migrator m) async {
+        await m.createTable(pullRequests);
+        await m.createTable(schemaMigrations);
+      },
     ),
     _MigrationStep(
       version: 2,
@@ -86,6 +102,15 @@ class AppDatabase extends _$AppDatabase {
       version: 4,
       checksum: '20250523_environment_mappings',
       run: (Migrator m) async => m.createTable(environmentMappings),
+    ),
+    _MigrationStep(
+      version: 5,
+      checksum: '20250523_drop_branch_add_envflags',
+      run: (Migrator m) async {
+        await m.deleteTable('pull_requests');
+        await m.createTable(pullRequests);
+        await m.createTable(prEnvFlags);
+      },
     ),
   ];
 

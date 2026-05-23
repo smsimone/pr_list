@@ -84,7 +84,7 @@ class PrSyncService {
       _logger.info('Loaded ${prs.length} PR(s) to sync');
 
       for (final pr in prs) {
-        final prLabel = 'PR #${pr.id} ${pr.branch} @ ${pr.projectAlias}';
+        final prLabel = 'PR #${pr.id} @ ${pr.projectAlias}';
         if (pr.prLink == null || pr.prLink!.trim().isEmpty) {
           _logger.info('$prLabel: no PR link, skipping');
           skipped++;
@@ -204,33 +204,30 @@ class PrSyncService {
       return;
     }
     _logger.info('PR #$prId: checking branches containing $lastCommitSha in $workingDirectory');
-    final result = await _gitClient.branchesContainingCommit(
+    final branchesResult = await _gitClient.branchesContainingCommit(
       lastCommitSha,
       workingDirectory: workingDirectory,
     );
-    if (result.isLeft) {
-      _logger.warning('PR #$prId: git branch-contains failed: ${result.left.message}');
+    if (branchesResult.isLeft) {
+      _logger.warning('PR #$prId: git branch-contains failed: ${branchesResult.left.message}');
       return;
     }
-    final branches = result.right;
+    final branches = branchesResult.right;
+
     final envResult = await _envMappingRepository.getAll();
-    List<bool> flags;
+    List<EnvironmentMapping> mappings;
     if (envResult.isLeft) {
       _logger.warning('PR #$prId: failed to load env mappings, using defaults');
-      flags = _defaultEnvFlags(branches);
+      mappings = _defaultMappings();
     } else {
-      flags = _resolveEnvFlags(branches, envResult.right);
+      mappings = envResult.right;
     }
 
+    final matchedIds = _resolveMatchedMappingIds(branches, mappings);
     _logger.info(
-      'PR #$prId: environment flags -> $flags (branches: $branches)',
+      'PR #$prId: matched env mapping ids: $matchedIds (branches: $branches)',
     );
-    await _repository.updateEnvironmentFlags(
-      id: prId,
-      isOnDevelop: flags.isNotEmpty ? flags[0] : false,
-      isOnUat: flags.length > 1 ? flags[1] : false,
-      isOnPreprod: flags.length > 2 ? flags[2] : false,
-    );
+    await _repository.setEnvFlags(prId, matchedIds);
   }
 
   Future<String?> _loadProviderStatus(int id) async {
@@ -275,22 +272,40 @@ class PrSyncService {
     });
   }
 
-  List<bool> _defaultEnvFlags(List<String> branches) {
+  List<EnvironmentMapping> _defaultMappings() {
     return [
-      branches.any((b) => b.endsWith('/develop')),
-      branches.any((b) => b.endsWith('/uat')),
-      branches.any((b) => b.endsWith('/preprod')),
+      EnvironmentMapping(
+        id: 0,
+        sortOrder: 0,
+        environmentName: 'Develop',
+        branchPattern: 'develop',
+      ),
+      EnvironmentMapping(
+        id: 0,
+        sortOrder: 1,
+        environmentName: 'UAT',
+        branchPattern: 'uat',
+      ),
+      EnvironmentMapping(
+        id: 0,
+        sortOrder: 2,
+        environmentName: 'Preprod',
+        branchPattern: 'preprod',
+      ),
     ];
   }
 
-  List<bool> _resolveEnvFlags(
+  List<int> _resolveMatchedMappingIds(
     List<String> branches,
     List<EnvironmentMapping> mappings,
   ) {
-    return mappings.map((m) {
-      final pattern = m.branchPattern.trim();
-      if (pattern.isEmpty) return false;
-      return branches.any((b) => b.endsWith('/$pattern'));
-    }).toList();
+    return mappings
+        .where((m) {
+          final pattern = m.branchPattern.trim();
+          if (pattern.isEmpty) return false;
+          return branches.any((b) => b.endsWith('/$pattern'));
+        })
+        .map((m) => m.id)
+        .toList();
   }
 }

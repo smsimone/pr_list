@@ -70,19 +70,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createAlias => 'Create alias';
 
   @override
-  String get branch => 'Branch';
-
-  @override
-  String get validationBranchRequired => 'Branch is required';
-
-  @override
-  String get validationBranchNoSpaces => 'Branch cannot contain spaces';
-
-  @override
-  String get validationBranchNotFound =>
-      'Branch does not exist in project repository';
-
-  @override
   String get jiraTicket => 'Ticket link';
 
   @override
@@ -102,15 +89,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get laneUnreleased => 'Unreleased';
-
-  @override
-  String get laneDev => 'Dev';
-
-  @override
-  String get laneUat => 'UAT';
-
-  @override
-  String get lanePreprod => 'Preprod';
 
   @override
   String get schedulerNotScheduled => 'Sync not scheduled';

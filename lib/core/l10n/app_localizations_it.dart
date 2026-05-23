@@ -71,19 +71,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get createAlias => 'Crea alias';
 
   @override
-  String get branch => 'Branch';
-
-  @override
-  String get validationBranchRequired => 'Branch obbligatorio';
-
-  @override
-  String get validationBranchNoSpaces => 'Il branch non può contenere spazi';
-
-  @override
-  String get validationBranchNotFound =>
-      'Branch non presente nella repository del progetto';
-
-  @override
   String get jiraTicket => 'Ticket link';
 
   @override
@@ -103,15 +90,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get laneUnreleased => 'Non rilasciato';
-
-  @override
-  String get laneDev => 'Dev';
-
-  @override
-  String get laneUat => 'UAT';
-
-  @override
-  String get lanePreprod => 'Preprod';
 
   @override
   String get schedulerNotScheduled => 'Sync non pianificata';

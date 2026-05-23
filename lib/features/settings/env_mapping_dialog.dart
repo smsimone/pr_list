@@ -27,56 +27,84 @@ class _EnvMappingDialogState extends ConsumerState<EnvMappingDialog> {
 
     return AlertDialog(
       title: Text(_l10n.envMappingsTitle),
-      content: mappingsAsync.when(
-        data: (mappings) {
-          if (_controllers.isEmpty) {
-            _initControllers(mappings);
-          }
-          return SizedBox(
-            width: 400,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _controllers.length,
-              itemBuilder: (context, index) {
-                final c = _controllers[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      Text('${index + 1}.',
-                          style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: c.name,
-                          decoration: InputDecoration(
-                            labelText: _l10n.envMappingNameLabel,
-                            isDense: true,
+      content: SizedBox(
+        width: 480,
+        child: mappingsAsync.when(
+          data: (mappings) {
+            if (_controllers.isEmpty) {
+              _initControllers(mappings);
+            }
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ..._controllers.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final c = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          Text('${index + 1}.',
+                              style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: c.name,
+                              decoration: InputDecoration(
+                                labelText: _l10n.envMappingNameLabel,
+                                isDense: true,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: c.pattern,
-                          decoration: InputDecoration(
-                            labelText: _l10n.envMappingPatternLabel,
-                            isDense: true,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: c.pattern,
+                              decoration: InputDecoration(
+                                labelText: _l10n.envMappingPatternLabel,
+                                isDense: true,
+                              ),
+                            ),
                           ),
-                        ),
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: _controllers.length > 1
+                                ? () {
+                                    setState(() {
+                                      c.name.dispose();
+                                      c.pattern.dispose();
+                                      _controllers.removeAt(index);
+                                    });
+                                  }
+                                : null,
+                          ),
+                        ],
                       ),
-                    ],
+                    );
+                  }),
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _controllers.add(_RowControllers(
+                          name: TextEditingController(),
+                          pattern: TextEditingController(),
+                        ));
+                      });
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add'),
                   ),
-                );
-              },
-            ),
-          );
-        },
-        loading: () => const SizedBox(
-          height: 100,
-          child: Center(child: CircularProgressIndicator()),
+                ],
+              ),
+            );
+          },
+          loading: () => const SizedBox(
+            height: 100,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (_, _) => Text(_l10n.genericError),
         ),
-        error: (_, _) => Text(_l10n.genericError),
       ),
       actions: [
         TextButton(
@@ -92,11 +120,17 @@ class _EnvMappingDialogState extends ConsumerState<EnvMappingDialog> {
   }
 
   void _initControllers(List<EnvironmentMapping> mappings) {
-    for (int i = 0; i < 3; i++) {
-      final existing = mappings.length > i ? mappings[i] : null;
+    if (mappings.isEmpty) {
       _controllers.add(_RowControllers(
-        name: TextEditingController(text: existing?.environmentName ?? ''),
-        pattern: TextEditingController(text: existing?.branchPattern ?? ''),
+        name: TextEditingController(),
+        pattern: TextEditingController(),
+      ));
+      return;
+    }
+    for (final m in mappings) {
+      _controllers.add(_RowControllers(
+        name: TextEditingController(text: m.environmentName),
+        pattern: TextEditingController(text: m.branchPattern),
       ));
     }
   }

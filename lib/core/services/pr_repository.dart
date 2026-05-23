@@ -29,23 +29,19 @@ class PrRepository {
 
   Future<Either<Failure, int>> create({
     required String projectAlias,
-    required String branch,
     String? jiraTicket,
     String? prLink,
     String? provider,
     String? providerPrId,
   }) async {
     assert(projectAlias.trim().isNotEmpty, 'projectAlias must not be empty');
-    assert(branch.trim().isNotEmpty, 'branch must not be empty');
     final now = DateTime.now();
     try {
-      _logger.info('Creating PR: $branch @ $projectAlias');
       final id = await _db
           .into(_db.pullRequests)
           .insert(
             PullRequestsCompanion.insert(
               projectAlias: projectAlias,
-              branch: branch,
               jiraTicket: Value(jiraTicket),
               prLink: Value(prLink),
               provider: Value(provider),
@@ -54,7 +50,7 @@ class PrRepository {
               updatedAt: now,
             ),
           );
-      _logger.info('PR #$id created: $branch @ $projectAlias');
+      _logger.info('PR #$id created @ $projectAlias');
       return Either.right(id);
     } catch (err) {
       _logger.severe('Create PR failed: $err');
@@ -65,7 +61,6 @@ class PrRepository {
   Future<Either<Failure, void>> updatePr({
     required int id,
     required String projectAlias,
-    required String branch,
     String? jiraTicket,
     String? prLink,
     required bool isTicketClosed,
@@ -74,13 +69,10 @@ class PrRepository {
   }) async {
     assert(id > 0, 'id must be greater than 0');
     assert(projectAlias.trim().isNotEmpty, 'projectAlias must not be empty');
-    assert(branch.trim().isNotEmpty, 'branch must not be empty');
     try {
-      _logger.info('Updating PR #$id: $branch @ $projectAlias');
       await (_db.update(_db.pullRequests)..where((t) => t.id.equals(id))).write(
         PullRequestsCompanion(
           projectAlias: Value(projectAlias),
-          branch: Value(branch),
           jiraTicket: Value(jiraTicket),
           prLink: Value(prLink),
           isTicketClosed: Value(isTicketClosed),
@@ -132,30 +124,48 @@ class PrRepository {
     }
   }
 
-  Future<Either<Failure, void>> updateEnvironmentFlags({
-    required int id,
-    required bool isOnDevelop,
-    required bool isOnUat,
-    required bool isOnPreprod,
-  }) async {
-    assert(id > 0, 'id must be greater than 0');
+  Future<Either<Failure, void>> setEnvFlags(
+    int prId,
+    List<int> envMappingIds,
+  ) async {
+    assert(prId > 0, 'prId must be greater than 0');
     try {
-      _logger.info(
-        'Updating environment flags for PR #$id: develop=$isOnDevelop, uat=$isOnUat, preprod=$isOnPreprod',
-      );
-      await (_db.update(_db.pullRequests)..where((t) => t.id.equals(id))).write(
-        PullRequestsCompanion(
-          isOnDevelop: Value(isOnDevelop),
-          isOnUat: Value(isOnUat),
-          isOnPreprod: Value(isOnPreprod),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
+      await _db.batch((batch) {
+        batch.deleteWhere(
+          _db.prEnvFlags,
+          (t) => t.prId.equals(prId),
+        );
+        for (final mappingId in envMappingIds) {
+          batch.insert(
+            _db.prEnvFlags,
+            PrEnvFlagsCompanion.insert(
+              prId: prId,
+              envMappingId: mappingId,
+            ),
+          );
+        }
+      });
       return const Either.right(null);
     } catch (err) {
-      _logger.severe('Update environment flags for PR #$id failed: $err');
+      _logger.severe('setEnvFlags for PR #$prId failed: $err');
       return Either.left(
-        Failure(message: 'Update environment flags failed', cause: err),
+        Failure(message: 'Set environment flags failed', cause: err),
+      );
+    }
+  }
+
+  Future<Either<Failure, Map<int, List<int>>>> getAllEnvFlags() async {
+    try {
+      final rows = await _db.select(_db.prEnvFlags).get();
+      final map = <int, List<int>>{};
+      for (final row in rows) {
+        map.putIfAbsent(row.prId, () => []).add(row.envMappingId);
+      }
+      return Either.right(map);
+    } catch (err) {
+      _logger.severe('getAllEnvFlags failed: $err');
+      return Either.left(
+        Failure(message: 'Load environment flags failed', cause: err),
       );
     }
   }
@@ -164,7 +174,16 @@ class PrRepository {
     assert(id > 0, 'id must be greater than 0');
     try {
       _logger.info('Deleting PR #$id');
-      await (_db.delete(_db.pullRequests)..where((t) => t.id.equals(id))).go();
+      await _db.batch((batch) {
+        batch.deleteWhere(
+          _db.prEnvFlags,
+          (t) => t.prId.equals(id),
+        );
+        batch.deleteWhere(
+          _db.pullRequests,
+          (t) => t.id.equals(id),
+        );
+      });
       _logger.info('PR #$id deleted');
       return const Either.right(null);
     } catch (err) {
@@ -177,9 +196,21 @@ class PrRepository {
     assert(alias.trim().isNotEmpty, 'alias must not be empty');
     try {
       _logger.info('Deleting PRs by project alias: $alias');
-      await (_db.delete(
-        _db.pullRequests,
-      )..where((tbl) => tbl.projectAlias.equals(alias))).go();
+      final prs = await (_db.select(_db.pullRequests)
+        ..where((t) => t.projectAlias.equals(alias))).get();
+      final prIds = prs.map((p) => p.id).toList();
+      await _db.batch((batch) {
+        for (final prId in prIds) {
+          batch.deleteWhere(
+            _db.prEnvFlags,
+            (t) => t.prId.equals(prId),
+          );
+        }
+        batch.deleteWhere(
+          _db.pullRequests,
+          (t) => t.projectAlias.equals(alias),
+        );
+      });
       _logger.info('PRs deleted for project alias: $alias');
       return const Either.right(null);
     } catch (err) {

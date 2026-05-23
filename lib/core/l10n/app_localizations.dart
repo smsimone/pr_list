@@ -218,30 +218,6 @@ abstract class AppLocalizations {
   /// **'Create alias'**
   String get createAlias;
 
-  /// No description provided for @branch.
-  ///
-  /// In en, this message translates to:
-  /// **'Branch'**
-  String get branch;
-
-  /// No description provided for @validationBranchRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Branch is required'**
-  String get validationBranchRequired;
-
-  /// No description provided for @validationBranchNoSpaces.
-  ///
-  /// In en, this message translates to:
-  /// **'Branch cannot contain spaces'**
-  String get validationBranchNoSpaces;
-
-  /// No description provided for @validationBranchNotFound.
-  ///
-  /// In en, this message translates to:
-  /// **'Branch does not exist in project repository'**
-  String get validationBranchNotFound;
-
   /// No description provided for @jiraTicket.
   ///
   /// In en, this message translates to:
@@ -283,24 +259,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unreleased'**
   String get laneUnreleased;
-
-  /// No description provided for @laneDev.
-  ///
-  /// In en, this message translates to:
-  /// **'Dev'**
-  String get laneDev;
-
-  /// No description provided for @laneUat.
-  ///
-  /// In en, this message translates to:
-  /// **'UAT'**
-  String get laneUat;
-
-  /// No description provided for @lanePreprod.
-  ///
-  /// In en, this message translates to:
-  /// **'Preprod'**
-  String get lanePreprod;
 
   /// No description provided for @schedulerNotScheduled.
   ///

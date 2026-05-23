@@ -1,10 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pr_list/core/di/injection_container.dart';
-import 'package:pr_list/core/services/git_client.dart';
 import 'package:pr_list/core/services/pr_repository.dart';
 import 'package:pr_list/core/services/pr_sync_service.dart';
 import 'package:pr_list/core/services/provider_registry.dart';
-import 'package:pr_list/core/services/project_repository.dart';
 import 'package:pr_list/features/pr_list/pr_list_notifier.dart';
 import 'package:pr_list/features/pr_list/pr_list_state.dart';
 
@@ -15,10 +13,17 @@ final prListNotifierProvider =
       (ref) => PrListNotifier(
         getIt<PrRepository>(),
         getIt<ProviderRegistry>(),
-        getIt<ProjectRepository>(),
-        getIt<GitClient>(),
       ),
     );
+
+final prEnvFlagsProvider = FutureProvider<Map<int, List<int>>>((ref) async {
+  final repo = getIt<PrRepository>();
+  final result = await repo.getAllEnvFlags();
+  if (result.isLeft) {
+    return <int, List<int>>{};
+  }
+  return result.right;
+});
 
 final prSyncServiceProvider = Provider<PrSyncService>(
   (ref) => getIt<PrSyncService>(),

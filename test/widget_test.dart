@@ -7,17 +7,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:pr_list/core/db/app_database.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
-import 'package:pr_list/core/services/git_client.dart';
+import 'package:pr_list/core/services/environment_mapping_repository.dart';
 import 'package:pr_list/core/services/pr_repository.dart';
 import 'package:pr_list/core/services/pr_sync_service.dart';
 import 'package:pr_list/core/services/provider_registry.dart';
 import 'package:pr_list/core/services/project_repository.dart';
+import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/features/pr_list/pr_form_dialog.dart';
 import 'package:pr_list/features/pr_list/pr_list_notifier.dart';
 import 'package:pr_list/features/pr_list/pr_list_page.dart';
 import 'package:pr_list/features/pr_list/pr_list_providers.dart';
 import 'package:pr_list/features/projects/projects_notifier.dart';
 import 'package:pr_list/features/projects/projects_providers.dart';
+import 'package:pr_list/features/settings/env_mapping_providers.dart';
 
 class _MockPrRepository extends Mock implements PrRepository {}
 
@@ -25,30 +27,43 @@ class _MockProviderRegistry extends Mock implements ProviderRegistry {}
 
 class _MockProjectRepository extends Mock implements ProjectRepository {}
 
-class _MockGitClient extends Mock implements GitClient {}
-
 class _MockPrSyncService extends Mock implements PrSyncService {}
 
 class _MockAppDatabase extends Mock implements AppDatabase {}
+
+class _MockEnvMappingRepository extends Mock
+    implements EnvironmentMappingRepository {}
 
 void main() {
   late _MockPrRepository prRepository;
   late _MockProviderRegistry providerRegistry;
   late _MockProjectRepository projectRepository;
-  late _MockGitClient gitClient;
   late _MockPrSyncService prSyncService;
   late _MockAppDatabase appDatabase;
+  late _MockEnvMappingRepository envMappingRepository;
 
   setUp(() {
     prRepository = _MockPrRepository();
     providerRegistry = _MockProviderRegistry();
     projectRepository = _MockProjectRepository();
-    gitClient = _MockGitClient();
     prSyncService = _MockPrSyncService();
     appDatabase = _MockAppDatabase();
+    envMappingRepository = _MockEnvMappingRepository();
 
     when(() => prRepository.watchAll()).thenAnswer(
       (_) => Stream<List<PullRequest>>.value(<PullRequest>[_samplePr()]),
+    );
+    when(() => prRepository.getAllEnvFlags()).thenAnswer(
+      (_) async => const Either.right(<int, List<int>>{}),
+    );
+    when(() => prRepository.create(
+      projectAlias: any(named: 'projectAlias'),
+      jiraTicket: any(named: 'jiraTicket'),
+      prLink: any(named: 'prLink'),
+      provider: any(named: 'provider'),
+      providerPrId: any(named: 'providerPrId'),
+    )).thenAnswer(
+      (_) async => const Either.right(1),
     );
     when(() => projectRepository.watchAll()).thenAnswer(
       (_) => Stream<List<Project>>.value(<Project>[_sampleProject()]),
@@ -60,6 +75,9 @@ void main() {
     );
     when(() => prSyncService.isSyncRunning).thenReturn(false);
     when(() => prSyncService.triggerNowAndReset()).thenAnswer((_) async {});
+    when(() => envMappingRepository.getAll()).thenAnswer(
+      (_) async => const Either.right(<EnvironmentMapping>[]),
+    );
     when(() => appDatabase.transaction<void>(any())).thenAnswer((invocation) {
       final Future<void> Function() callback =
           invocation.positionalArguments.first as Future<void> Function();
@@ -76,9 +94,9 @@ void main() {
           prRepository,
           providerRegistry,
           projectRepository,
-          gitClient,
           prSyncService,
           appDatabase,
+          envMappingRepository,
         ),
         child: const PrFormDialog(),
       ),
@@ -91,7 +109,7 @@ void main() {
     expect(tile.onChanged, isNull);
   });
 
-  testWidgets('shows inline validation errors for branch and PR URL', (
+  testWidgets('shows PR list with unreleased lane', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -100,37 +118,9 @@ void main() {
           prRepository,
           providerRegistry,
           projectRepository,
-          gitClient,
           prSyncService,
           appDatabase,
-        ),
-        child: const PrFormDialog(),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byType(TextFormField).at(0), 'my-project');
-    await tester.enterText(find.byType(TextFormField).at(1), 'feature broken');
-    await tester.enterText(find.byType(TextFormField).at(3), 'abc');
-    await tester.tap(find.text('Save'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Branch cannot contain spaces'), findsOneWidget);
-    expect(find.text('Invalid PR URL'), findsOneWidget);
-  });
-
-  testWidgets('toggles PR list between grouped list and kanban view', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(
-      _buildTestApp(
-        overrides: _providerOverrides(
-          prRepository,
-          providerRegistry,
-          projectRepository,
-          gitClient,
-          prSyncService,
-          appDatabase,
+          envMappingRepository,
         ),
         child: const PrListPage(),
       ),
@@ -138,15 +128,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Unreleased'), findsOneWidget);
-    expect(find.byIcon(Icons.view_kanban), findsOneWidget);
-
-    await tester.tap(find.byIcon(Icons.view_kanban));
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.view_list), findsOneWidget);
   });
 
-  testWidgets('shows scheduler action with countdown text in app bar', (
+  testWidgets('shows PR list with project alias', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -155,17 +139,16 @@ void main() {
           prRepository,
           providerRegistry,
           projectRepository,
-          gitClient,
           prSyncService,
           appDatabase,
+          envMappingRepository,
         ),
         child: const PrListPage(),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.schedule), findsOneWidget);
-    expect(find.textContaining('Next run in'), findsOneWidget);
+    expect(find.text('my-project'), findsOneWidget);
   });
 }
 
@@ -173,15 +156,13 @@ List<Override> _providerOverrides(
   _MockPrRepository prRepository,
   _MockProviderRegistry providerRegistry,
   _MockProjectRepository projectRepository,
-  _MockGitClient gitClient,
   _MockPrSyncService prSyncService,
   _MockAppDatabase appDatabase,
+  _MockEnvMappingRepository envMappingRepository,
 ) {
   final PrListNotifier prListNotifier = PrListNotifier(
     prRepository,
     providerRegistry,
-    projectRepository,
-    gitClient,
   );
   final ProjectsNotifier projectsNotifier = ProjectsNotifier(
     projectRepository,
@@ -192,6 +173,9 @@ List<Override> _providerOverrides(
     prListNotifierProvider.overrideWith((ref) => prListNotifier),
     projectsNotifierProvider.overrideWith((ref) => projectsNotifier),
     prSyncServiceProvider.overrideWithValue(prSyncService),
+    envMappingRepositoryProvider.overrideWithValue(envMappingRepository),
+    envMappingsProvider.overrideWith((ref) async => <EnvironmentMapping>[]),
+    prEnvFlagsProvider.overrideWith((ref) async => <int, List<int>>{}),
   ];
 }
 
@@ -219,7 +203,6 @@ PullRequest _samplePr() {
   return PullRequest(
     id: 1,
     projectAlias: 'my-project',
-    branch: 'feature/test',
     jiraTicket: 'ABC-1',
     prLink: 'https://dev.azure.com/org/project/_git/repo/pullrequest/1',
     provider: 'azure_devops',
@@ -227,9 +210,6 @@ PullRequest _samplePr() {
     providerStatus: 'completed',
     lastCommitSha: 'abc123',
     isTicketClosed: false,
-    isOnDevelop: false,
-    isOnUat: false,
-    isOnPreprod: false,
     createdAt: now,
     updatedAt: now,
   );

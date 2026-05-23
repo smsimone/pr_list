@@ -9,8 +9,6 @@ import 'package:pr_list/features/settings/env_mapping_providers.dart';
 import 'package:pr_list/shared/widgets/empty_state.dart';
 import 'package:pr_list/shared/widgets/responsive_container.dart';
 
-enum _PrLane { unreleased, develop, uat, preprod }
-
 class PrListPage extends ConsumerWidget {
   const PrListPage({super.key});
 
@@ -51,19 +49,17 @@ class _GroupedPrList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final grouped = _groupByLane(prs);
-    final orderedLanes = [
-      _PrLane.unreleased,
-      _PrLane.develop,
-      _PrLane.uat,
-      _PrLane.preprod,
-    ];
+    final flagsAsync = ref.watch(prEnvFlagsProvider);
     final envMappingsAsync = ref.watch(envMappingsProvider);
+    final mappings = envMappingsAsync.valueOrNull ?? [];
+    final flags = flagsAsync.valueOrNull ?? const {};
+    final lanes = _buildLaneList(mappings);
+    final grouped = _groupByLane(prs, flags, mappings);
 
     return ListView.builder(
-      itemCount: orderedLanes.length,
+      itemCount: lanes.length,
       itemBuilder: (context, index) {
-        final lane = orderedLanes[index];
+        final lane = lanes[index];
         final laneItems = grouped[lane] ?? [];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
@@ -71,7 +67,7 @@ class _GroupedPrList extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _laneLabel(l10n, lane, envMappingsAsync),
+                _laneLabel(l10n, lane, mappings),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
@@ -119,14 +115,12 @@ class _KanbanPrListState extends ConsumerState<_KanbanPrList> {
 
   @override
   Widget build(BuildContext context) {
-    final grouped = _groupByLane(widget.prs);
-    final lanes = [
-      _PrLane.unreleased,
-      _PrLane.develop,
-      _PrLane.uat,
-      _PrLane.preprod,
-    ];
+    final flagsAsync = ref.watch(prEnvFlagsProvider);
     final envMappingsAsync = ref.watch(envMappingsProvider);
+    final mappings = envMappingsAsync.valueOrNull ?? [];
+    final flags = flagsAsync.valueOrNull ?? const {};
+    final lanes = _buildLaneList(mappings);
+    final grouped = _groupByLane(widget.prs, flags, mappings);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -140,8 +134,7 @@ class _KanbanPrListState extends ConsumerState<_KanbanPrList> {
         final totalWidth = laneWidth * laneCount + totalGaps;
 
         final columns = lanes.map((lane) {
-          final laneItems =
-              grouped[lane] ?? [];
+          final laneItems = grouped[lane] ?? [];
           return Container(
             width: laneWidth,
             margin: EdgeInsets.only(right: lane == lanes.last ? 0 : gap),
@@ -152,7 +145,7 @@ class _KanbanPrListState extends ConsumerState<_KanbanPrList> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _laneLabel(_l10n, lane, envMappingsAsync),
+                      _laneLabel(_l10n, lane, mappings),
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 12),
@@ -161,8 +154,7 @@ class _KanbanPrListState extends ConsumerState<_KanbanPrList> {
                           ? Text(_l10n.emptyState)
                           : ListView.builder(
                               itemCount: laneItems.length,
-                              itemBuilder:
-                                  (context, index) {
+                              itemBuilder: (context, index) {
                                 final pr = laneItems[index];
                                 return Padding(
                                   padding:
@@ -228,8 +220,10 @@ class _PrCard extends ConsumerWidget {
                   ),
                 ),
               ),
-            Flexible(child: Text('${pr.projectAlias} • ${pr.branch}',
-                overflow: TextOverflow.ellipsis)),
+            Flexible(
+              child: Text(pr.projectAlias,
+                  overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         subtitle: Column(
@@ -318,60 +312,61 @@ class _PrCard extends ConsumerWidget {
   }
 }
 
-Map<_PrLane, List<PullRequest>> _groupByLane(List<PullRequest> prs) {
-  final grouped = <_PrLane, List<PullRequest>>{
-    _PrLane.unreleased: <PullRequest>[],
-    _PrLane.develop: <PullRequest>[],
-    _PrLane.uat: <PullRequest>[],
-    _PrLane.preprod: <PullRequest>[],
-  };
+List<int?> _buildLaneList(List<EnvironmentMapping> mappings) {
+  final lanes = <int?>[null];
+  for (final m in mappings) {
+    lanes.add(m.id);
+  }
+  return lanes;
+}
+
+Map<int?, List<PullRequest>> _groupByLane(
+  List<PullRequest> prs,
+  Map<int, List<int>> flags,
+  List<EnvironmentMapping> mappings,
+) {
+  final grouped = <int?, List<PullRequest>>{};
+  grouped[null] = [];
+
+  for (final m in mappings) {
+    grouped[m.id] = [];
+  }
 
   for (final pr in prs) {
-    grouped[_resolveLane(pr)]!.add(pr);
+    final laneId = _resolveLaneId(pr.id, flags, mappings);
+    grouped[laneId]!.add(pr);
   }
   return grouped;
 }
 
-_PrLane _resolveLane(PullRequest pr) {
-  if (pr.isOnPreprod) {
-    return _PrLane.preprod;
+int? _resolveLaneId(
+  int prId,
+  Map<int, List<int>> flags,
+  List<EnvironmentMapping> mappings,
+) {
+  final prFlags = flags[prId] ?? [];
+
+  if (prFlags.isEmpty) return null;
+
+  for (final m in mappings.reversed) {
+    if (prFlags.contains(m.id)) {
+      return m.id;
+    }
   }
-  if (pr.isOnUat) {
-    return _PrLane.uat;
-  }
-  if (pr.isOnDevelop) {
-    return _PrLane.develop;
-  }
-  return _PrLane.unreleased;
+  return null;
 }
 
 String _laneLabel(
   AppLocalizations l10n,
-  _PrLane lane, [
-  AsyncValue<List<EnvironmentMapping>>? envMappingsAsync,
-]) {
-  final List<EnvironmentMapping>? mappings =
-      envMappingsAsync?.valueOrNull;
-  switch (lane) {
-    case _PrLane.unreleased:
-      return l10n.laneUnreleased;
-    case _PrLane.develop:
-      if (mappings != null && mappings.isNotEmpty) {
-        final name = mappings[0].environmentName.trim();
-        if (name.isNotEmpty) return name;
-      }
-      return l10n.laneDev;
-    case _PrLane.uat:
-      if (mappings != null && mappings.length > 1) {
-        final name = mappings[1].environmentName.trim();
-        if (name.isNotEmpty) return name;
-      }
-      return l10n.laneUat;
-    case _PrLane.preprod:
-      if (mappings != null && mappings.length > 2) {
-        final name = mappings[2].environmentName.trim();
-        if (name.isNotEmpty) return name;
-      }
-      return l10n.lanePreprod;
+  int? laneId,
+  List<EnvironmentMapping> mappings,
+) {
+  if (laneId == null) {
+    return l10n.laneUnreleased;
   }
+  final mapping = mappings.where((m) => m.id == laneId).firstOrNull;
+  if (mapping != null && mapping.environmentName.trim().isNotEmpty) {
+    return mapping.environmentName.trim();
+  }
+  return l10n.laneUnreleased;
 }

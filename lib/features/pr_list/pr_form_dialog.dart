@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:pr_list/core/db/app_database.dart';
-import 'package:pr_list/core/di/injection_container.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
-import 'package:pr_list/core/services/branch_cache_service.dart';
 import 'package:pr_list/features/pr_list/pr_list_providers.dart';
 import 'package:pr_list/features/pr_list/pr_list_notifier.dart';
 import 'package:pr_list/features/projects/project_form_dialog.dart';
@@ -24,26 +22,20 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   final _formKey = GlobalKey<FormState>();
   late AppLocalizations _l10n;
   late TextEditingController _projectController;
-  late TextEditingController _branchController;
   late TextEditingController _ticketController;
   late TextEditingController _linkController;
   bool _ticketClosed = false;
   bool _isSaving = false;
   String? _submitError;
-  List<String> _branches = [];
-  bool _branchesLoading = false;
   bool _projectSelected = false;
 
   @override
   void initState() {
     super.initState();
     final mode = widget.existing == null ? 'create' : 'edit';
-    _logger.info('Dialog opened ($mode) for PR: ${widget.existing?.branch ?? "new"}');
+    _logger.info('Dialog opened ($mode)');
     _projectController = TextEditingController(
       text: widget.existing?.projectAlias ?? '',
-    );
-    _branchController = TextEditingController(
-      text: widget.existing?.branch ?? '',
     );
     _ticketController = TextEditingController(
       text: widget.existing?.jiraTicket ?? '',
@@ -56,7 +48,6 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
 
     if (widget.existing != null) {
       _projectSelected = true;
-      _loadBranches(widget.existing!.projectAlias);
     }
   }
 
@@ -70,7 +61,6 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   void dispose() {
     _ticketController.removeListener(_onTicketChanged);
     _projectController.dispose();
-    _branchController.dispose();
     _ticketController.dispose();
     _linkController.dispose();
     super.dispose();
@@ -80,54 +70,6 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     if (_ticketController.text.trim().isEmpty && _ticketClosed) {
       setState(() => _ticketClosed = false);
     }
-  }
-
-  Future<void> _loadBranches(String projectAlias) async {
-    final project = ref
-        .read(projectsNotifierProvider)
-        .items
-        .where((p) => p.alias == projectAlias)
-        .firstOrNull;
-    if (project == null) return;
-
-    setState(() => _branchesLoading = true);
-
-    final cacheService = getIt<BranchCacheService>();
-    final result = await cacheService.getBranches(project.path);
-
-    if (!mounted) return;
-
-    setState(() {
-      if (result.isRight) {
-        _branches = _deduplicateBranches(result.right);
-      }
-      _branchesLoading = false;
-    });
-  }
-
-  String? _validateBranch(String? value) {
-    final branch = value?.trim() ?? '';
-    if (branch.isEmpty) {
-      return _l10n.validationBranchRequired;
-    }
-    if (branch.contains(RegExp(r'\s'))) {
-      return _l10n.validationBranchNoSpaces;
-    }
-    return null;
-  }
-
-  List<String> _deduplicateBranches(List<String> branches) {
-    final seen = <String>{};
-    final result = <String>[];
-    for (final branch in branches) {
-      final normalized = branch.startsWith('origin/')
-          ? branch.substring(7)
-          : branch;
-      if (seen.add(normalized)) {
-        result.add(normalized);
-      }
-    }
-    return result;
   }
 
   String? _validatePrLink(String? value) {
@@ -152,16 +94,10 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     return null;
   }
 
-  String _resolveSubmitError(
-    PrOperationException exception,
-  ) {
+  String _resolveSubmitError(PrOperationException exception) {
     switch (exception.code) {
       case PrOperationErrorCode.projectNotFound:
         return _l10n.validationProjectNotFound;
-      case PrOperationErrorCode.invalidProjectRepository:
-        return _l10n.validationProjectRepoInvalid;
-      case PrOperationErrorCode.branchNotFound:
-        return _l10n.validationBranchNotFound;
       case PrOperationErrorCode.persistenceFailure:
         return _l10n.genericSaveError;
     }
@@ -170,6 +106,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   @override
   Widget build(BuildContext context) {
     final projectsState = ref.watch(projectsNotifierProvider);
+    final commitSha = widget.existing?.lastCommitSha;
     return AlertDialog(
       title: Text(widget.existing == null ? _l10n.addPr : _l10n.editPr),
       content: SizedBox(
@@ -203,7 +140,6 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                       onSelected: (value) {
                         _projectController.text = value;
                         setState(() => _projectSelected = true);
-                        _loadBranches(value);
                       },
                       fieldViewBuilder:
                           (
@@ -251,72 +187,6 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                 ],
               ),
               const SizedBox(height: 12),
-              Autocomplete<String>(
-                initialValue: TextEditingValue(
-                  text: _branchController.text,
-                ),
-                optionsBuilder: (TextEditingValue value) {
-                  if (_branchesLoading || _branches.isEmpty) {
-                    return [];
-                  }
-                  final query = value.text.trim().toLowerCase();
-                  if (query.isEmpty) {
-                    return _branches;
-                  }
-                  return _branches
-                      .where((b) => b.toLowerCase().contains(query))
-                      .toList();
-                },
-                onSelected: (value) {
-                  _branchController.text = value;
-                },
-                fieldViewBuilder:
-                    (
-                      context,
-                      textController,
-                      focusNode,
-                      onFieldSubmitted,
-                    ) {
-                  if (textController.text != _branchController.text) {
-                    textController.text = _branchController.text;
-                  }
-                  return TextFormField(
-                    enabled: _projectSelected,
-                    controller: textController,
-                    focusNode: focusNode,
-                    onTap: () {
-                      if (_branches.isNotEmpty) {
-                        textController.value = TextEditingValue(
-                          text: textController.text,
-                          selection: TextSelection.collapsed(
-                            offset: textController.text.length,
-                          ),
-                        );
-                      }
-                    },
-                    decoration: InputDecoration(
-                      labelText: _l10n.branch,
-                      suffixIcon: _branchesLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: Padding(
-                                padding: EdgeInsets.all(12),
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            )
-                          : null,
-                    ),
-                    validator: (value) => _validateBranch(value),
-                    onChanged: (value) {
-                      _branchController.text = value;
-                    },
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
               TextFormField(
                 enabled: _projectSelected,
                 controller: _ticketController,
@@ -346,6 +216,17 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                 title: Text(_l10n.ticketClosed),
                 controlAffinity: ListTileControlAffinity.leading,
               ),
+              if (commitSha != null && commitSha.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: TextEditingController(text: commitSha),
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: _l10n.lastCommit,
+                    isDense: true,
+                  ),
+                ),
+              ],
               if (_submitError != null) ...[
                 const SizedBox(height: 12),
                 Align(
@@ -389,21 +270,18 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                       : _linkController.text.trim();
                   final isNew = widget.existing == null;
                   _logger.info(
-                    'Saving PR: branch=${_branchController.text.trim()}, '
-                    'project=${_projectController.text.trim()}, '
+                    'Saving PR: project=${_projectController.text.trim()}, '
                     'link=${_linkController.text.trim()}',
                   );
                   final result = isNew
                       ? await notifier.addPr(
                           projectAlias: _projectController.text.trim(),
-                          branch: _branchController.text.trim(),
                           jiraTicket: jiraTicket,
                           prLink: prLink,
                         )
                       : await notifier.updatePr(
                           id: widget.existing!.id,
                           projectAlias: _projectController.text.trim(),
-                          branch: _branchController.text.trim(),
                           jiraTicket: jiraTicket,
                           prLink: prLink,
                           isTicketClosed: _ticketClosed,
@@ -415,9 +293,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                     _logger.warning('Save failed: ${result.left.code} (${result.left.details})');
                     setState(() {
                       _isSaving = false;
-                      _submitError = _resolveSubmitError(
-                        result.left,
-                      );
+                      _submitError = _resolveSubmitError(result.left);
                     });
                     return;
                   }

@@ -4,15 +4,22 @@ import 'package:pr_list/core/di/injection_container.dart';
 import 'package:pr_list/core/services/pr_repository.dart';
 import 'package:pr_list/features/dashboard/dashboard_state.dart';
 
-final dashboardProvider = StreamProvider<DashboardState>((ref) {
+final dashboardProvider = StreamProvider<DashboardState>((ref) async* {
   final log = Logger('Dashboard');
   final repository = getIt<PrRepository>();
-  return repository.watchAll().map((items) {
+
+  final flagsResult = await repository.getAllEnvFlags();
+  final flags = flagsResult.isLeft ? <int, List<int>>{} : flagsResult.right;
+
+  await for (final items in repository.watchAll()) {
     final withJira = items
         .where((pr) => pr.jiraTicket != null && pr.jiraTicket!.isNotEmpty)
         .toList();
     final notReleased = withJira
-        .where((pr) => !(pr.isOnDevelop && pr.isOnUat && pr.isOnPreprod))
+        .where((pr) {
+          final prFlags = flags[pr.id] ?? [];
+          return prFlags.isEmpty;
+        })
         .toList();
     final notClosed = withJira
         .where((pr) => !pr.isTicketClosed)
@@ -21,6 +28,6 @@ final dashboardProvider = StreamProvider<DashboardState>((ref) {
       'Dashboard: ${items.length} PRs, ${notReleased.length} not released, '
       '${notClosed.length} not closed',
     );
-    return DashboardState(notReleased: notReleased, notClosed: notClosed);
-  });
+    yield DashboardState(notReleased: notReleased, notClosed: notClosed);
+  }
 });

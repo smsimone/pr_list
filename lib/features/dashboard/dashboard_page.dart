@@ -81,7 +81,7 @@ class _DashboardColumn extends StatelessWidget {
                           child: Card(
                             child: ListTile(
                               title: Text(
-                                '${pr.projectAlias} • ${pr.branch}',
+                                pr.projectAlias,
                               ),
                               subtitle: pr.jiraTicket == null
                                   ? null

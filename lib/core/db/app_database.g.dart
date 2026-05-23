@@ -33,15 +33,6 @@ class $PullRequestsTable extends PullRequests
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _branchMeta = const VerificationMeta('branch');
-  @override
-  late final GeneratedColumn<String> branch = GeneratedColumn<String>(
-    'branch',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _jiraTicketMeta = const VerificationMeta(
     'jiraTicket',
   );
@@ -121,51 +112,6 @@ class $PullRequestsTable extends PullRequests
     ),
     defaultValue: const Constant(false),
   );
-  static const VerificationMeta _isOnDevelopMeta = const VerificationMeta(
-    'isOnDevelop',
-  );
-  @override
-  late final GeneratedColumn<bool> isOnDevelop = GeneratedColumn<bool>(
-    'is_on_develop',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_on_develop" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _isOnUatMeta = const VerificationMeta(
-    'isOnUat',
-  );
-  @override
-  late final GeneratedColumn<bool> isOnUat = GeneratedColumn<bool>(
-    'is_on_uat',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_on_uat" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _isOnPreprodMeta = const VerificationMeta(
-    'isOnPreprod',
-  );
-  @override
-  late final GeneratedColumn<bool> isOnPreprod = GeneratedColumn<bool>(
-    'is_on_preprod',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_on_preprod" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -192,7 +138,6 @@ class $PullRequestsTable extends PullRequests
   List<GeneratedColumn> get $columns => [
     id,
     projectAlias,
-    branch,
     jiraTicket,
     prLink,
     provider,
@@ -200,9 +145,6 @@ class $PullRequestsTable extends PullRequests
     providerStatus,
     lastCommitSha,
     isTicketClosed,
-    isOnDevelop,
-    isOnUat,
-    isOnPreprod,
     createdAt,
     updatedAt,
   ];
@@ -231,14 +173,6 @@ class $PullRequestsTable extends PullRequests
       );
     } else if (isInserting) {
       context.missing(_projectAliasMeta);
-    }
-    if (data.containsKey('branch')) {
-      context.handle(
-        _branchMeta,
-        branch.isAcceptableOrUnknown(data['branch']!, _branchMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_branchMeta);
     }
     if (data.containsKey('jira_ticket')) {
       context.handle(
@@ -294,30 +228,6 @@ class $PullRequestsTable extends PullRequests
         ),
       );
     }
-    if (data.containsKey('is_on_develop')) {
-      context.handle(
-        _isOnDevelopMeta,
-        isOnDevelop.isAcceptableOrUnknown(
-          data['is_on_develop']!,
-          _isOnDevelopMeta,
-        ),
-      );
-    }
-    if (data.containsKey('is_on_uat')) {
-      context.handle(
-        _isOnUatMeta,
-        isOnUat.isAcceptableOrUnknown(data['is_on_uat']!, _isOnUatMeta),
-      );
-    }
-    if (data.containsKey('is_on_preprod')) {
-      context.handle(
-        _isOnPreprodMeta,
-        isOnPreprod.isAcceptableOrUnknown(
-          data['is_on_preprod']!,
-          _isOnPreprodMeta,
-        ),
-      );
-    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -351,10 +261,6 @@ class $PullRequestsTable extends PullRequests
         DriftSqlType.string,
         data['${effectivePrefix}project_alias'],
       )!,
-      branch: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}branch'],
-      )!,
       jiraTicket: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}jira_ticket'],
@@ -383,18 +289,6 @@ class $PullRequestsTable extends PullRequests
         DriftSqlType.bool,
         data['${effectivePrefix}is_ticket_closed'],
       )!,
-      isOnDevelop: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_on_develop'],
-      )!,
-      isOnUat: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_on_uat'],
-      )!,
-      isOnPreprod: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_on_preprod'],
-      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -415,7 +309,6 @@ class $PullRequestsTable extends PullRequests
 class PullRequest extends DataClass implements Insertable<PullRequest> {
   final int id;
   final String projectAlias;
-  final String branch;
   final String? jiraTicket;
   final String? prLink;
   final String? provider;
@@ -423,15 +316,11 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
   final String? providerStatus;
   final String? lastCommitSha;
   final bool isTicketClosed;
-  final bool isOnDevelop;
-  final bool isOnUat;
-  final bool isOnPreprod;
   final DateTime createdAt;
   final DateTime updatedAt;
   const PullRequest({
     required this.id,
     required this.projectAlias,
-    required this.branch,
     this.jiraTicket,
     this.prLink,
     this.provider,
@@ -439,9 +328,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     this.providerStatus,
     this.lastCommitSha,
     required this.isTicketClosed,
-    required this.isOnDevelop,
-    required this.isOnUat,
-    required this.isOnPreprod,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -450,7 +336,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['project_alias'] = Variable<String>(projectAlias);
-    map['branch'] = Variable<String>(branch);
     if (!nullToAbsent || jiraTicket != null) {
       map['jira_ticket'] = Variable<String>(jiraTicket);
     }
@@ -470,9 +355,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       map['last_commit_sha'] = Variable<String>(lastCommitSha);
     }
     map['is_ticket_closed'] = Variable<bool>(isTicketClosed);
-    map['is_on_develop'] = Variable<bool>(isOnDevelop);
-    map['is_on_uat'] = Variable<bool>(isOnUat);
-    map['is_on_preprod'] = Variable<bool>(isOnPreprod);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -482,7 +364,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     return PullRequestsCompanion(
       id: Value(id),
       projectAlias: Value(projectAlias),
-      branch: Value(branch),
       jiraTicket: jiraTicket == null && nullToAbsent
           ? const Value.absent()
           : Value(jiraTicket),
@@ -502,9 +383,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
           ? const Value.absent()
           : Value(lastCommitSha),
       isTicketClosed: Value(isTicketClosed),
-      isOnDevelop: Value(isOnDevelop),
-      isOnUat: Value(isOnUat),
-      isOnPreprod: Value(isOnPreprod),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -518,7 +396,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     return PullRequest(
       id: serializer.fromJson<int>(json['id']),
       projectAlias: serializer.fromJson<String>(json['projectAlias']),
-      branch: serializer.fromJson<String>(json['branch']),
       jiraTicket: serializer.fromJson<String?>(json['jiraTicket']),
       prLink: serializer.fromJson<String?>(json['prLink']),
       provider: serializer.fromJson<String?>(json['provider']),
@@ -526,9 +403,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       providerStatus: serializer.fromJson<String?>(json['providerStatus']),
       lastCommitSha: serializer.fromJson<String?>(json['lastCommitSha']),
       isTicketClosed: serializer.fromJson<bool>(json['isTicketClosed']),
-      isOnDevelop: serializer.fromJson<bool>(json['isOnDevelop']),
-      isOnUat: serializer.fromJson<bool>(json['isOnUat']),
-      isOnPreprod: serializer.fromJson<bool>(json['isOnPreprod']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -539,7 +413,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'projectAlias': serializer.toJson<String>(projectAlias),
-      'branch': serializer.toJson<String>(branch),
       'jiraTicket': serializer.toJson<String?>(jiraTicket),
       'prLink': serializer.toJson<String?>(prLink),
       'provider': serializer.toJson<String?>(provider),
@@ -547,9 +420,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       'providerStatus': serializer.toJson<String?>(providerStatus),
       'lastCommitSha': serializer.toJson<String?>(lastCommitSha),
       'isTicketClosed': serializer.toJson<bool>(isTicketClosed),
-      'isOnDevelop': serializer.toJson<bool>(isOnDevelop),
-      'isOnUat': serializer.toJson<bool>(isOnUat),
-      'isOnPreprod': serializer.toJson<bool>(isOnPreprod),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -558,7 +428,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
   PullRequest copyWith({
     int? id,
     String? projectAlias,
-    String? branch,
     Value<String?> jiraTicket = const Value.absent(),
     Value<String?> prLink = const Value.absent(),
     Value<String?> provider = const Value.absent(),
@@ -566,15 +435,11 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     Value<String?> providerStatus = const Value.absent(),
     Value<String?> lastCommitSha = const Value.absent(),
     bool? isTicketClosed,
-    bool? isOnDevelop,
-    bool? isOnUat,
-    bool? isOnPreprod,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => PullRequest(
     id: id ?? this.id,
     projectAlias: projectAlias ?? this.projectAlias,
-    branch: branch ?? this.branch,
     jiraTicket: jiraTicket.present ? jiraTicket.value : this.jiraTicket,
     prLink: prLink.present ? prLink.value : this.prLink,
     provider: provider.present ? provider.value : this.provider,
@@ -586,9 +451,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
         ? lastCommitSha.value
         : this.lastCommitSha,
     isTicketClosed: isTicketClosed ?? this.isTicketClosed,
-    isOnDevelop: isOnDevelop ?? this.isOnDevelop,
-    isOnUat: isOnUat ?? this.isOnUat,
-    isOnPreprod: isOnPreprod ?? this.isOnPreprod,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -598,7 +460,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       projectAlias: data.projectAlias.present
           ? data.projectAlias.value
           : this.projectAlias,
-      branch: data.branch.present ? data.branch.value : this.branch,
       jiraTicket: data.jiraTicket.present
           ? data.jiraTicket.value
           : this.jiraTicket,
@@ -616,13 +477,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       isTicketClosed: data.isTicketClosed.present
           ? data.isTicketClosed.value
           : this.isTicketClosed,
-      isOnDevelop: data.isOnDevelop.present
-          ? data.isOnDevelop.value
-          : this.isOnDevelop,
-      isOnUat: data.isOnUat.present ? data.isOnUat.value : this.isOnUat,
-      isOnPreprod: data.isOnPreprod.present
-          ? data.isOnPreprod.value
-          : this.isOnPreprod,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -633,7 +487,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     return (StringBuffer('PullRequest(')
           ..write('id: $id, ')
           ..write('projectAlias: $projectAlias, ')
-          ..write('branch: $branch, ')
           ..write('jiraTicket: $jiraTicket, ')
           ..write('prLink: $prLink, ')
           ..write('provider: $provider, ')
@@ -641,9 +494,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
           ..write('providerStatus: $providerStatus, ')
           ..write('lastCommitSha: $lastCommitSha, ')
           ..write('isTicketClosed: $isTicketClosed, ')
-          ..write('isOnDevelop: $isOnDevelop, ')
-          ..write('isOnUat: $isOnUat, ')
-          ..write('isOnPreprod: $isOnPreprod, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -654,7 +504,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
   int get hashCode => Object.hash(
     id,
     projectAlias,
-    branch,
     jiraTicket,
     prLink,
     provider,
@@ -662,9 +511,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     providerStatus,
     lastCommitSha,
     isTicketClosed,
-    isOnDevelop,
-    isOnUat,
-    isOnPreprod,
     createdAt,
     updatedAt,
   );
@@ -674,7 +520,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       (other is PullRequest &&
           other.id == this.id &&
           other.projectAlias == this.projectAlias &&
-          other.branch == this.branch &&
           other.jiraTicket == this.jiraTicket &&
           other.prLink == this.prLink &&
           other.provider == this.provider &&
@@ -682,9 +527,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
           other.providerStatus == this.providerStatus &&
           other.lastCommitSha == this.lastCommitSha &&
           other.isTicketClosed == this.isTicketClosed &&
-          other.isOnDevelop == this.isOnDevelop &&
-          other.isOnUat == this.isOnUat &&
-          other.isOnPreprod == this.isOnPreprod &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -692,7 +534,6 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
 class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
   final Value<int> id;
   final Value<String> projectAlias;
-  final Value<String> branch;
   final Value<String?> jiraTicket;
   final Value<String?> prLink;
   final Value<String?> provider;
@@ -700,15 +541,11 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
   final Value<String?> providerStatus;
   final Value<String?> lastCommitSha;
   final Value<bool> isTicketClosed;
-  final Value<bool> isOnDevelop;
-  final Value<bool> isOnUat;
-  final Value<bool> isOnPreprod;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const PullRequestsCompanion({
     this.id = const Value.absent(),
     this.projectAlias = const Value.absent(),
-    this.branch = const Value.absent(),
     this.jiraTicket = const Value.absent(),
     this.prLink = const Value.absent(),
     this.provider = const Value.absent(),
@@ -716,16 +553,12 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     this.providerStatus = const Value.absent(),
     this.lastCommitSha = const Value.absent(),
     this.isTicketClosed = const Value.absent(),
-    this.isOnDevelop = const Value.absent(),
-    this.isOnUat = const Value.absent(),
-    this.isOnPreprod = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   PullRequestsCompanion.insert({
     this.id = const Value.absent(),
     required String projectAlias,
-    required String branch,
     this.jiraTicket = const Value.absent(),
     this.prLink = const Value.absent(),
     this.provider = const Value.absent(),
@@ -733,19 +566,14 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     this.providerStatus = const Value.absent(),
     this.lastCommitSha = const Value.absent(),
     this.isTicketClosed = const Value.absent(),
-    this.isOnDevelop = const Value.absent(),
-    this.isOnUat = const Value.absent(),
-    this.isOnPreprod = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
   }) : projectAlias = Value(projectAlias),
-       branch = Value(branch),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<PullRequest> custom({
     Expression<int>? id,
     Expression<String>? projectAlias,
-    Expression<String>? branch,
     Expression<String>? jiraTicket,
     Expression<String>? prLink,
     Expression<String>? provider,
@@ -753,16 +581,12 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     Expression<String>? providerStatus,
     Expression<String>? lastCommitSha,
     Expression<bool>? isTicketClosed,
-    Expression<bool>? isOnDevelop,
-    Expression<bool>? isOnUat,
-    Expression<bool>? isOnPreprod,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (projectAlias != null) 'project_alias': projectAlias,
-      if (branch != null) 'branch': branch,
       if (jiraTicket != null) 'jira_ticket': jiraTicket,
       if (prLink != null) 'pr_link': prLink,
       if (provider != null) 'provider': provider,
@@ -770,9 +594,6 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
       if (providerStatus != null) 'provider_status': providerStatus,
       if (lastCommitSha != null) 'last_commit_sha': lastCommitSha,
       if (isTicketClosed != null) 'is_ticket_closed': isTicketClosed,
-      if (isOnDevelop != null) 'is_on_develop': isOnDevelop,
-      if (isOnUat != null) 'is_on_uat': isOnUat,
-      if (isOnPreprod != null) 'is_on_preprod': isOnPreprod,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -781,7 +602,6 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
   PullRequestsCompanion copyWith({
     Value<int>? id,
     Value<String>? projectAlias,
-    Value<String>? branch,
     Value<String?>? jiraTicket,
     Value<String?>? prLink,
     Value<String?>? provider,
@@ -789,16 +609,12 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     Value<String?>? providerStatus,
     Value<String?>? lastCommitSha,
     Value<bool>? isTicketClosed,
-    Value<bool>? isOnDevelop,
-    Value<bool>? isOnUat,
-    Value<bool>? isOnPreprod,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
     return PullRequestsCompanion(
       id: id ?? this.id,
       projectAlias: projectAlias ?? this.projectAlias,
-      branch: branch ?? this.branch,
       jiraTicket: jiraTicket ?? this.jiraTicket,
       prLink: prLink ?? this.prLink,
       provider: provider ?? this.provider,
@@ -806,9 +622,6 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
       providerStatus: providerStatus ?? this.providerStatus,
       lastCommitSha: lastCommitSha ?? this.lastCommitSha,
       isTicketClosed: isTicketClosed ?? this.isTicketClosed,
-      isOnDevelop: isOnDevelop ?? this.isOnDevelop,
-      isOnUat: isOnUat ?? this.isOnUat,
-      isOnPreprod: isOnPreprod ?? this.isOnPreprod,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -822,9 +635,6 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     }
     if (projectAlias.present) {
       map['project_alias'] = Variable<String>(projectAlias.value);
-    }
-    if (branch.present) {
-      map['branch'] = Variable<String>(branch.value);
     }
     if (jiraTicket.present) {
       map['jira_ticket'] = Variable<String>(jiraTicket.value);
@@ -847,15 +657,6 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     if (isTicketClosed.present) {
       map['is_ticket_closed'] = Variable<bool>(isTicketClosed.value);
     }
-    if (isOnDevelop.present) {
-      map['is_on_develop'] = Variable<bool>(isOnDevelop.value);
-    }
-    if (isOnUat.present) {
-      map['is_on_uat'] = Variable<bool>(isOnUat.value);
-    }
-    if (isOnPreprod.present) {
-      map['is_on_preprod'] = Variable<bool>(isOnPreprod.value);
-    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -870,7 +671,6 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     return (StringBuffer('PullRequestsCompanion(')
           ..write('id: $id, ')
           ..write('projectAlias: $projectAlias, ')
-          ..write('branch: $branch, ')
           ..write('jiraTicket: $jiraTicket, ')
           ..write('prLink: $prLink, ')
           ..write('provider: $provider, ')
@@ -878,9 +678,6 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
           ..write('providerStatus: $providerStatus, ')
           ..write('lastCommitSha: $lastCommitSha, ')
           ..write('isTicketClosed: $isTicketClosed, ')
-          ..write('isOnDevelop: $isOnDevelop, ')
-          ..write('isOnUat: $isOnUat, ')
-          ..write('isOnPreprod: $isOnPreprod, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1902,6 +1699,269 @@ class EnvironmentMappingsCompanion extends UpdateCompanion<EnvironmentMapping> {
   }
 }
 
+class $PrEnvFlagsTable extends PrEnvFlags
+    with TableInfo<$PrEnvFlagsTable, PrEnvFlag> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PrEnvFlagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _prIdMeta = const VerificationMeta('prId');
+  @override
+  late final GeneratedColumn<int> prId = GeneratedColumn<int>(
+    'pr_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES pull_requests (id)',
+    ),
+  );
+  static const VerificationMeta _envMappingIdMeta = const VerificationMeta(
+    'envMappingId',
+  );
+  @override
+  late final GeneratedColumn<int> envMappingId = GeneratedColumn<int>(
+    'env_mapping_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES environment_mappings (id)',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, prId, envMappingId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pr_env_flags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PrEnvFlag> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('pr_id')) {
+      context.handle(
+        _prIdMeta,
+        prId.isAcceptableOrUnknown(data['pr_id']!, _prIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_prIdMeta);
+    }
+    if (data.containsKey('env_mapping_id')) {
+      context.handle(
+        _envMappingIdMeta,
+        envMappingId.isAcceptableOrUnknown(
+          data['env_mapping_id']!,
+          _envMappingIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_envMappingIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {prId, envMappingId},
+  ];
+  @override
+  PrEnvFlag map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PrEnvFlag(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      prId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pr_id'],
+      )!,
+      envMappingId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}env_mapping_id'],
+      )!,
+    );
+  }
+
+  @override
+  $PrEnvFlagsTable createAlias(String alias) {
+    return $PrEnvFlagsTable(attachedDatabase, alias);
+  }
+}
+
+class PrEnvFlag extends DataClass implements Insertable<PrEnvFlag> {
+  final int id;
+  final int prId;
+  final int envMappingId;
+  const PrEnvFlag({
+    required this.id,
+    required this.prId,
+    required this.envMappingId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['pr_id'] = Variable<int>(prId);
+    map['env_mapping_id'] = Variable<int>(envMappingId);
+    return map;
+  }
+
+  PrEnvFlagsCompanion toCompanion(bool nullToAbsent) {
+    return PrEnvFlagsCompanion(
+      id: Value(id),
+      prId: Value(prId),
+      envMappingId: Value(envMappingId),
+    );
+  }
+
+  factory PrEnvFlag.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PrEnvFlag(
+      id: serializer.fromJson<int>(json['id']),
+      prId: serializer.fromJson<int>(json['prId']),
+      envMappingId: serializer.fromJson<int>(json['envMappingId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'prId': serializer.toJson<int>(prId),
+      'envMappingId': serializer.toJson<int>(envMappingId),
+    };
+  }
+
+  PrEnvFlag copyWith({int? id, int? prId, int? envMappingId}) => PrEnvFlag(
+    id: id ?? this.id,
+    prId: prId ?? this.prId,
+    envMappingId: envMappingId ?? this.envMappingId,
+  );
+  PrEnvFlag copyWithCompanion(PrEnvFlagsCompanion data) {
+    return PrEnvFlag(
+      id: data.id.present ? data.id.value : this.id,
+      prId: data.prId.present ? data.prId.value : this.prId,
+      envMappingId: data.envMappingId.present
+          ? data.envMappingId.value
+          : this.envMappingId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PrEnvFlag(')
+          ..write('id: $id, ')
+          ..write('prId: $prId, ')
+          ..write('envMappingId: $envMappingId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, prId, envMappingId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PrEnvFlag &&
+          other.id == this.id &&
+          other.prId == this.prId &&
+          other.envMappingId == this.envMappingId);
+}
+
+class PrEnvFlagsCompanion extends UpdateCompanion<PrEnvFlag> {
+  final Value<int> id;
+  final Value<int> prId;
+  final Value<int> envMappingId;
+  const PrEnvFlagsCompanion({
+    this.id = const Value.absent(),
+    this.prId = const Value.absent(),
+    this.envMappingId = const Value.absent(),
+  });
+  PrEnvFlagsCompanion.insert({
+    this.id = const Value.absent(),
+    required int prId,
+    required int envMappingId,
+  }) : prId = Value(prId),
+       envMappingId = Value(envMappingId);
+  static Insertable<PrEnvFlag> custom({
+    Expression<int>? id,
+    Expression<int>? prId,
+    Expression<int>? envMappingId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (prId != null) 'pr_id': prId,
+      if (envMappingId != null) 'env_mapping_id': envMappingId,
+    });
+  }
+
+  PrEnvFlagsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? prId,
+    Value<int>? envMappingId,
+  }) {
+    return PrEnvFlagsCompanion(
+      id: id ?? this.id,
+      prId: prId ?? this.prId,
+      envMappingId: envMappingId ?? this.envMappingId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (prId.present) {
+      map['pr_id'] = Variable<int>(prId.value);
+    }
+    if (envMappingId.present) {
+      map['env_mapping_id'] = Variable<int>(envMappingId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PrEnvFlagsCompanion(')
+          ..write('id: $id, ')
+          ..write('prId: $prId, ')
+          ..write('envMappingId: $envMappingId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1912,6 +1972,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ProjectsTable projects = $ProjectsTable(this);
   late final $EnvironmentMappingsTable environmentMappings =
       $EnvironmentMappingsTable(this);
+  late final $PrEnvFlagsTable prEnvFlags = $PrEnvFlagsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1921,6 +1982,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     schemaMigrations,
     projects,
     environmentMappings,
+    prEnvFlags,
   ];
 }
 
@@ -1928,7 +1990,6 @@ typedef $$PullRequestsTableCreateCompanionBuilder =
     PullRequestsCompanion Function({
       Value<int> id,
       required String projectAlias,
-      required String branch,
       Value<String?> jiraTicket,
       Value<String?> prLink,
       Value<String?> provider,
@@ -1936,9 +1997,6 @@ typedef $$PullRequestsTableCreateCompanionBuilder =
       Value<String?> providerStatus,
       Value<String?> lastCommitSha,
       Value<bool> isTicketClosed,
-      Value<bool> isOnDevelop,
-      Value<bool> isOnUat,
-      Value<bool> isOnPreprod,
       required DateTime createdAt,
       required DateTime updatedAt,
     });
@@ -1946,7 +2004,6 @@ typedef $$PullRequestsTableUpdateCompanionBuilder =
     PullRequestsCompanion Function({
       Value<int> id,
       Value<String> projectAlias,
-      Value<String> branch,
       Value<String?> jiraTicket,
       Value<String?> prLink,
       Value<String?> provider,
@@ -1954,12 +2011,32 @@ typedef $$PullRequestsTableUpdateCompanionBuilder =
       Value<String?> providerStatus,
       Value<String?> lastCommitSha,
       Value<bool> isTicketClosed,
-      Value<bool> isOnDevelop,
-      Value<bool> isOnUat,
-      Value<bool> isOnPreprod,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
+
+final class $$PullRequestsTableReferences
+    extends BaseReferences<_$AppDatabase, $PullRequestsTable, PullRequest> {
+  $$PullRequestsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$PrEnvFlagsTable, List<PrEnvFlag>>
+  _prEnvFlagsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.prEnvFlags,
+    aliasName: $_aliasNameGenerator(db.pullRequests.id, db.prEnvFlags.prId),
+  );
+
+  $$PrEnvFlagsTableProcessedTableManager get prEnvFlagsRefs {
+    final manager = $$PrEnvFlagsTableTableManager(
+      $_db,
+      $_db.prEnvFlags,
+    ).filter((f) => f.prId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_prEnvFlagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$PullRequestsTableFilterComposer
     extends Composer<_$AppDatabase, $PullRequestsTable> {
@@ -1977,11 +2054,6 @@ class $$PullRequestsTableFilterComposer
 
   ColumnFilters<String> get projectAlias => $composableBuilder(
     column: $table.projectAlias,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get branch => $composableBuilder(
-    column: $table.branch,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2020,21 +2092,6 @@ class $$PullRequestsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get isOnDevelop => $composableBuilder(
-    column: $table.isOnDevelop,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isOnUat => $composableBuilder(
-    column: $table.isOnUat,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isOnPreprod => $composableBuilder(
-    column: $table.isOnPreprod,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -2044,6 +2101,31 @@ class $$PullRequestsTableFilterComposer
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> prEnvFlagsRefs(
+    Expression<bool> Function($$PrEnvFlagsTableFilterComposer f) f,
+  ) {
+    final $$PrEnvFlagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.prEnvFlags,
+      getReferencedColumn: (t) => t.prId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PrEnvFlagsTableFilterComposer(
+            $db: $db,
+            $table: $db.prEnvFlags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$PullRequestsTableOrderingComposer
@@ -2062,11 +2144,6 @@ class $$PullRequestsTableOrderingComposer
 
   ColumnOrderings<String> get projectAlias => $composableBuilder(
     column: $table.projectAlias,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get branch => $composableBuilder(
-    column: $table.branch,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2105,21 +2182,6 @@ class $$PullRequestsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get isOnDevelop => $composableBuilder(
-    column: $table.isOnDevelop,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isOnUat => $composableBuilder(
-    column: $table.isOnUat,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isOnPreprod => $composableBuilder(
-    column: $table.isOnPreprod,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2147,9 +2209,6 @@ class $$PullRequestsTableAnnotationComposer
     column: $table.projectAlias,
     builder: (column) => column,
   );
-
-  GeneratedColumn<String> get branch =>
-      $composableBuilder(column: $table.branch, builder: (column) => column);
 
   GeneratedColumn<String> get jiraTicket => $composableBuilder(
     column: $table.jiraTicket,
@@ -2182,24 +2241,36 @@ class $$PullRequestsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<bool> get isOnDevelop => $composableBuilder(
-    column: $table.isOnDevelop,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get isOnUat =>
-      $composableBuilder(column: $table.isOnUat, builder: (column) => column);
-
-  GeneratedColumn<bool> get isOnPreprod => $composableBuilder(
-    column: $table.isOnPreprod,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> prEnvFlagsRefs<T extends Object>(
+    Expression<T> Function($$PrEnvFlagsTableAnnotationComposer a) f,
+  ) {
+    final $$PrEnvFlagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.prEnvFlags,
+      getReferencedColumn: (t) => t.prId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PrEnvFlagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.prEnvFlags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$PullRequestsTableTableManager
@@ -2213,12 +2284,9 @@ class $$PullRequestsTableTableManager
           $$PullRequestsTableAnnotationComposer,
           $$PullRequestsTableCreateCompanionBuilder,
           $$PullRequestsTableUpdateCompanionBuilder,
-          (
-            PullRequest,
-            BaseReferences<_$AppDatabase, $PullRequestsTable, PullRequest>,
-          ),
+          (PullRequest, $$PullRequestsTableReferences),
           PullRequest,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool prEnvFlagsRefs})
         > {
   $$PullRequestsTableTableManager(_$AppDatabase db, $PullRequestsTable table)
     : super(
@@ -2235,7 +2303,6 @@ class $$PullRequestsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> projectAlias = const Value.absent(),
-                Value<String> branch = const Value.absent(),
                 Value<String?> jiraTicket = const Value.absent(),
                 Value<String?> prLink = const Value.absent(),
                 Value<String?> provider = const Value.absent(),
@@ -2243,15 +2310,11 @@ class $$PullRequestsTableTableManager
                 Value<String?> providerStatus = const Value.absent(),
                 Value<String?> lastCommitSha = const Value.absent(),
                 Value<bool> isTicketClosed = const Value.absent(),
-                Value<bool> isOnDevelop = const Value.absent(),
-                Value<bool> isOnUat = const Value.absent(),
-                Value<bool> isOnPreprod = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => PullRequestsCompanion(
                 id: id,
                 projectAlias: projectAlias,
-                branch: branch,
                 jiraTicket: jiraTicket,
                 prLink: prLink,
                 provider: provider,
@@ -2259,9 +2322,6 @@ class $$PullRequestsTableTableManager
                 providerStatus: providerStatus,
                 lastCommitSha: lastCommitSha,
                 isTicketClosed: isTicketClosed,
-                isOnDevelop: isOnDevelop,
-                isOnUat: isOnUat,
-                isOnPreprod: isOnPreprod,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -2269,7 +2329,6 @@ class $$PullRequestsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required String projectAlias,
-                required String branch,
                 Value<String?> jiraTicket = const Value.absent(),
                 Value<String?> prLink = const Value.absent(),
                 Value<String?> provider = const Value.absent(),
@@ -2277,15 +2336,11 @@ class $$PullRequestsTableTableManager
                 Value<String?> providerStatus = const Value.absent(),
                 Value<String?> lastCommitSha = const Value.absent(),
                 Value<bool> isTicketClosed = const Value.absent(),
-                Value<bool> isOnDevelop = const Value.absent(),
-                Value<bool> isOnUat = const Value.absent(),
-                Value<bool> isOnPreprod = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
               }) => PullRequestsCompanion.insert(
                 id: id,
                 projectAlias: projectAlias,
-                branch: branch,
                 jiraTicket: jiraTicket,
                 prLink: prLink,
                 provider: provider,
@@ -2293,16 +2348,47 @@ class $$PullRequestsTableTableManager
                 providerStatus: providerStatus,
                 lastCommitSha: lastCommitSha,
                 isTicketClosed: isTicketClosed,
-                isOnDevelop: isOnDevelop,
-                isOnUat: isOnUat,
-                isOnPreprod: isOnPreprod,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PullRequestsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({prEnvFlagsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (prEnvFlagsRefs) db.prEnvFlags],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (prEnvFlagsRefs)
+                    await $_getPrefetchedData<
+                      PullRequest,
+                      $PullRequestsTable,
+                      PrEnvFlag
+                    >(
+                      currentTable: table,
+                      referencedTable: $$PullRequestsTableReferences
+                          ._prEnvFlagsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$PullRequestsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).prEnvFlagsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.prId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -2317,12 +2403,9 @@ typedef $$PullRequestsTableProcessedTableManager =
       $$PullRequestsTableAnnotationComposer,
       $$PullRequestsTableCreateCompanionBuilder,
       $$PullRequestsTableUpdateCompanionBuilder,
-      (
-        PullRequest,
-        BaseReferences<_$AppDatabase, $PullRequestsTable, PullRequest>,
-      ),
+      (PullRequest, $$PullRequestsTableReferences),
       PullRequest,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool prEnvFlagsRefs})
     >;
 typedef $$SchemaMigrationsTableCreateCompanionBuilder =
     SchemaMigrationsCompanion Function({
@@ -2727,6 +2810,41 @@ typedef $$EnvironmentMappingsTableUpdateCompanionBuilder =
       Value<String> branchPattern,
     });
 
+final class $$EnvironmentMappingsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $EnvironmentMappingsTable,
+          EnvironmentMapping
+        > {
+  $$EnvironmentMappingsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$PrEnvFlagsTable, List<PrEnvFlag>>
+  _prEnvFlagsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.prEnvFlags,
+    aliasName: $_aliasNameGenerator(
+      db.environmentMappings.id,
+      db.prEnvFlags.envMappingId,
+    ),
+  );
+
+  $$PrEnvFlagsTableProcessedTableManager get prEnvFlagsRefs {
+    final manager = $$PrEnvFlagsTableTableManager(
+      $_db,
+      $_db.prEnvFlags,
+    ).filter((f) => f.envMappingId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_prEnvFlagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$EnvironmentMappingsTableFilterComposer
     extends Composer<_$AppDatabase, $EnvironmentMappingsTable> {
   $$EnvironmentMappingsTableFilterComposer({
@@ -2755,6 +2873,31 @@ class $$EnvironmentMappingsTableFilterComposer
     column: $table.branchPattern,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> prEnvFlagsRefs(
+    Expression<bool> Function($$PrEnvFlagsTableFilterComposer f) f,
+  ) {
+    final $$PrEnvFlagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.prEnvFlags,
+      getReferencedColumn: (t) => t.envMappingId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PrEnvFlagsTableFilterComposer(
+            $db: $db,
+            $table: $db.prEnvFlags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$EnvironmentMappingsTableOrderingComposer
@@ -2811,6 +2954,31 @@ class $$EnvironmentMappingsTableAnnotationComposer
     column: $table.branchPattern,
     builder: (column) => column,
   );
+
+  Expression<T> prEnvFlagsRefs<T extends Object>(
+    Expression<T> Function($$PrEnvFlagsTableAnnotationComposer a) f,
+  ) {
+    final $$PrEnvFlagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.prEnvFlags,
+      getReferencedColumn: (t) => t.envMappingId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PrEnvFlagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.prEnvFlags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$EnvironmentMappingsTableTableManager
@@ -2824,16 +2992,9 @@ class $$EnvironmentMappingsTableTableManager
           $$EnvironmentMappingsTableAnnotationComposer,
           $$EnvironmentMappingsTableCreateCompanionBuilder,
           $$EnvironmentMappingsTableUpdateCompanionBuilder,
-          (
-            EnvironmentMapping,
-            BaseReferences<
-              _$AppDatabase,
-              $EnvironmentMappingsTable,
-              EnvironmentMapping
-            >,
-          ),
+          (EnvironmentMapping, $$EnvironmentMappingsTableReferences),
           EnvironmentMapping,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool prEnvFlagsRefs})
         > {
   $$EnvironmentMappingsTableTableManager(
     _$AppDatabase db,
@@ -2879,9 +3040,45 @@ class $$EnvironmentMappingsTableTableManager
                 branchPattern: branchPattern,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$EnvironmentMappingsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({prEnvFlagsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (prEnvFlagsRefs) db.prEnvFlags],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (prEnvFlagsRefs)
+                    await $_getPrefetchedData<
+                      EnvironmentMapping,
+                      $EnvironmentMappingsTable,
+                      PrEnvFlag
+                    >(
+                      currentTable: table,
+                      referencedTable: $$EnvironmentMappingsTableReferences
+                          ._prEnvFlagsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$EnvironmentMappingsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).prEnvFlagsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.envMappingId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -2896,16 +3093,377 @@ typedef $$EnvironmentMappingsTableProcessedTableManager =
       $$EnvironmentMappingsTableAnnotationComposer,
       $$EnvironmentMappingsTableCreateCompanionBuilder,
       $$EnvironmentMappingsTableUpdateCompanionBuilder,
-      (
-        EnvironmentMapping,
-        BaseReferences<
-          _$AppDatabase,
-          $EnvironmentMappingsTable,
-          EnvironmentMapping
-        >,
-      ),
+      (EnvironmentMapping, $$EnvironmentMappingsTableReferences),
       EnvironmentMapping,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool prEnvFlagsRefs})
+    >;
+typedef $$PrEnvFlagsTableCreateCompanionBuilder =
+    PrEnvFlagsCompanion Function({
+      Value<int> id,
+      required int prId,
+      required int envMappingId,
+    });
+typedef $$PrEnvFlagsTableUpdateCompanionBuilder =
+    PrEnvFlagsCompanion Function({
+      Value<int> id,
+      Value<int> prId,
+      Value<int> envMappingId,
+    });
+
+final class $$PrEnvFlagsTableReferences
+    extends BaseReferences<_$AppDatabase, $PrEnvFlagsTable, PrEnvFlag> {
+  $$PrEnvFlagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $PullRequestsTable _prIdTable(_$AppDatabase db) =>
+      db.pullRequests.createAlias(
+        $_aliasNameGenerator(db.prEnvFlags.prId, db.pullRequests.id),
+      );
+
+  $$PullRequestsTableProcessedTableManager get prId {
+    final $_column = $_itemColumn<int>('pr_id')!;
+
+    final manager = $$PullRequestsTableTableManager(
+      $_db,
+      $_db.pullRequests,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_prIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $EnvironmentMappingsTable _envMappingIdTable(_$AppDatabase db) =>
+      db.environmentMappings.createAlias(
+        $_aliasNameGenerator(
+          db.prEnvFlags.envMappingId,
+          db.environmentMappings.id,
+        ),
+      );
+
+  $$EnvironmentMappingsTableProcessedTableManager get envMappingId {
+    final $_column = $_itemColumn<int>('env_mapping_id')!;
+
+    final manager = $$EnvironmentMappingsTableTableManager(
+      $_db,
+      $_db.environmentMappings,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_envMappingIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PrEnvFlagsTableFilterComposer
+    extends Composer<_$AppDatabase, $PrEnvFlagsTable> {
+  $$PrEnvFlagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$PullRequestsTableFilterComposer get prId {
+    final $$PullRequestsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.prId,
+      referencedTable: $db.pullRequests,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PullRequestsTableFilterComposer(
+            $db: $db,
+            $table: $db.pullRequests,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EnvironmentMappingsTableFilterComposer get envMappingId {
+    final $$EnvironmentMappingsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.envMappingId,
+      referencedTable: $db.environmentMappings,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EnvironmentMappingsTableFilterComposer(
+            $db: $db,
+            $table: $db.environmentMappings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PrEnvFlagsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PrEnvFlagsTable> {
+  $$PrEnvFlagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$PullRequestsTableOrderingComposer get prId {
+    final $$PullRequestsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.prId,
+      referencedTable: $db.pullRequests,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PullRequestsTableOrderingComposer(
+            $db: $db,
+            $table: $db.pullRequests,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EnvironmentMappingsTableOrderingComposer get envMappingId {
+    final $$EnvironmentMappingsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.envMappingId,
+          referencedTable: $db.environmentMappings,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EnvironmentMappingsTableOrderingComposer(
+                $db: $db,
+                $table: $db.environmentMappings,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$PrEnvFlagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PrEnvFlagsTable> {
+  $$PrEnvFlagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  $$PullRequestsTableAnnotationComposer get prId {
+    final $$PullRequestsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.prId,
+      referencedTable: $db.pullRequests,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PullRequestsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.pullRequests,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EnvironmentMappingsTableAnnotationComposer get envMappingId {
+    final $$EnvironmentMappingsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.envMappingId,
+          referencedTable: $db.environmentMappings,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$EnvironmentMappingsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.environmentMappings,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$PrEnvFlagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PrEnvFlagsTable,
+          PrEnvFlag,
+          $$PrEnvFlagsTableFilterComposer,
+          $$PrEnvFlagsTableOrderingComposer,
+          $$PrEnvFlagsTableAnnotationComposer,
+          $$PrEnvFlagsTableCreateCompanionBuilder,
+          $$PrEnvFlagsTableUpdateCompanionBuilder,
+          (PrEnvFlag, $$PrEnvFlagsTableReferences),
+          PrEnvFlag,
+          PrefetchHooks Function({bool prId, bool envMappingId})
+        > {
+  $$PrEnvFlagsTableTableManager(_$AppDatabase db, $PrEnvFlagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PrEnvFlagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PrEnvFlagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PrEnvFlagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> prId = const Value.absent(),
+                Value<int> envMappingId = const Value.absent(),
+              }) => PrEnvFlagsCompanion(
+                id: id,
+                prId: prId,
+                envMappingId: envMappingId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int prId,
+                required int envMappingId,
+              }) => PrEnvFlagsCompanion.insert(
+                id: id,
+                prId: prId,
+                envMappingId: envMappingId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PrEnvFlagsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({prId = false, envMappingId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (prId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.prId,
+                                referencedTable: $$PrEnvFlagsTableReferences
+                                    ._prIdTable(db),
+                                referencedColumn: $$PrEnvFlagsTableReferences
+                                    ._prIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (envMappingId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.envMappingId,
+                                referencedTable: $$PrEnvFlagsTableReferences
+                                    ._envMappingIdTable(db),
+                                referencedColumn: $$PrEnvFlagsTableReferences
+                                    ._envMappingIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PrEnvFlagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PrEnvFlagsTable,
+      PrEnvFlag,
+      $$PrEnvFlagsTableFilterComposer,
+      $$PrEnvFlagsTableOrderingComposer,
+      $$PrEnvFlagsTableAnnotationComposer,
+      $$PrEnvFlagsTableCreateCompanionBuilder,
+      $$PrEnvFlagsTableUpdateCompanionBuilder,
+      (PrEnvFlag, $$PrEnvFlagsTableReferences),
+      PrEnvFlag,
+      PrefetchHooks Function({bool prId, bool envMappingId})
     >;
 
 class $AppDatabaseManager {
@@ -2919,4 +3477,6 @@ class $AppDatabaseManager {
       $$ProjectsTableTableManager(_db, _db.projects);
   $$EnvironmentMappingsTableTableManager get environmentMappings =>
       $$EnvironmentMappingsTableTableManager(_db, _db.environmentMappings);
+  $$PrEnvFlagsTableTableManager get prEnvFlags =>
+      $$PrEnvFlagsTableTableManager(_db, _db.prEnvFlags);
 }
