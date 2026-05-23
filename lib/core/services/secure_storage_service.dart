@@ -3,7 +3,7 @@ import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/core/utils/failure.dart';
 
 class SecureStorageService {
-  static const String _kAzurePatKey = 'azure_pat';
+  static const _kAzurePatKey = 'azure_pat';
 
   final FlutterSecureStorage _storage;
 
@@ -11,7 +11,7 @@ class SecureStorageService {
 
   Future<Either<Failure, String?>> getAzurePat() async {
     try {
-      final String? value = await _storage.read(key: _kAzurePatKey);
+      final value = await _storage.read(key: _kAzurePatKey);
       return Either.right(value);
     } catch (err) {
       return Either.left(

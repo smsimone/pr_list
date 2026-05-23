@@ -17,7 +17,7 @@ class PrRepository {
     try {
       final query = _db.select(_db.pullRequests)
         ..where((tbl) => tbl.id.equals(id));
-      final PullRequest? pr = await query.getSingleOrNull();
+      final pr = await query.getSingleOrNull();
       return Either.right(pr);
     } catch (err) {
       return Either.left(Failure(message: 'Load PR failed', cause: err));
@@ -34,9 +34,9 @@ class PrRepository {
   }) async {
     assert(projectAlias.trim().isNotEmpty, 'projectAlias must not be empty');
     assert(branch.trim().isNotEmpty, 'branch must not be empty');
-    final DateTime now = DateTime.now();
+    final now = DateTime.now();
     try {
-      final int id = await _db
+      final id = await _db
           .into(_db.pullRequests)
           .insert(
             PullRequestsCompanion.insert(

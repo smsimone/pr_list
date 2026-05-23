@@ -15,21 +15,21 @@ class PrListPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(prListNotifierProvider);
-    final PrListViewMode viewMode = ref.watch(prListViewModeProvider);
+    final viewMode = ref.watch(prListViewModeProvider);
     final nextRunAsync = ref.watch(schedulerNextRunProvider);
-    final bool isSyncRunning = ref.watch(prSyncServiceProvider).isSyncRunning;
+    final isSyncRunning = ref.watch(prSyncServiceProvider).isSyncRunning;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.tabPrList),
-        actions: <Widget>[
+        actions: [
           TextButton.icon(
             onPressed: isSyncRunning
                 ? null
                 : () async {
-                    final Future<void> Function() triggerSync = ref.read(
+                    final triggerSync = ref.read(
                       triggerPrSyncProvider,
                     );
                     await triggerSync();
@@ -99,10 +99,10 @@ class PrListPage extends ConsumerWidget {
     if (nextRun == null) {
       return l10n.schedulerNotScheduled;
     }
-    final Duration remaining = nextRun.difference(DateTime.now());
-    final Duration positive = remaining.isNegative ? Duration.zero : remaining;
-    final int minutes = positive.inMinutes;
-    final int seconds = positive.inSeconds.remainder(60);
+    final remaining = nextRun.difference(DateTime.now());
+    final positive = remaining.isNegative ? Duration.zero : remaining;
+    final minutes = positive.inMinutes;
+    final seconds = positive.inSeconds.remainder(60);
     return l10n.schedulerCountdown(minutes, seconds);
   }
 }
@@ -114,9 +114,9 @@ class _GroupedPrList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final Map<_PrLane, List<PullRequest>> grouped = _groupByLane(prs);
-    final List<_PrLane> orderedLanes = <_PrLane>[
+    final l10n = AppLocalizations.of(context)!;
+    final grouped = _groupByLane(prs);
+    final orderedLanes = [
       _PrLane.unreleased,
       _PrLane.develop,
       _PrLane.uat,
@@ -125,14 +125,14 @@ class _GroupedPrList extends ConsumerWidget {
 
     return ListView.builder(
       itemCount: orderedLanes.length,
-      itemBuilder: (BuildContext context, int index) {
-        final _PrLane lane = orderedLanes[index];
-        final List<PullRequest> laneItems = grouped[lane] ?? <PullRequest>[];
+      itemBuilder: (context, index) {
+        final lane = orderedLanes[index];
+        final laneItems = grouped[lane] ?? [];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
+            children: [
               Text(
                 _laneLabel(l10n, lane),
                 style: Theme.of(context).textTheme.titleMedium,
@@ -142,7 +142,7 @@ class _GroupedPrList extends ConsumerWidget {
                 Text(l10n.emptyState)
               else
                 ...laneItems.map(
-                  (PullRequest pr) => Padding(
+                  (pr) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: _PrCard(pr: pr),
                   ),
@@ -165,7 +165,14 @@ class _KanbanPrList extends StatefulWidget {
 }
 
 class _KanbanPrListState extends State<_KanbanPrList> {
-  final ScrollController _scrollController = ScrollController();
+  final _scrollController = ScrollController();
+  late AppLocalizations _l10n;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _l10n = AppLocalizations.of(context)!;
+  }
 
   @override
   void dispose() {
@@ -175,9 +182,8 @@ class _KanbanPrListState extends State<_KanbanPrList> {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final Map<_PrLane, List<PullRequest>> grouped = _groupByLane(widget.prs);
-    final List<_PrLane> lanes = <_PrLane>[
+    final grouped = _groupByLane(widget.prs);
+    final lanes = [
       _PrLane.unreleased,
       _PrLane.develop,
       _PrLane.uat,
@@ -185,19 +191,19 @@ class _KanbanPrListState extends State<_KanbanPrList> {
     ];
 
     return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
+      builder: (context, constraints) {
         const double gap = 12;
-        final int laneCount = lanes.length;
-        final double totalGaps = gap * (laneCount - 1);
-        final double idealWidth =
+        final laneCount = lanes.length;
+        final totalGaps = gap * (laneCount - 1);
+        final idealWidth =
             (constraints.maxWidth - totalGaps) / laneCount;
-        final double laneWidth = idealWidth.clamp(240, 350);
+        final laneWidth = idealWidth.clamp(240.0, 350.0);
 
-        final double totalWidth = laneWidth * laneCount + totalGaps;
+        final totalWidth = laneWidth * laneCount + totalGaps;
 
-        final List<Widget> columns = lanes.map((lane) {
-          final List<PullRequest> laneItems =
-              grouped[lane] ?? <PullRequest>[];
+        final columns = lanes.map((lane) {
+          final laneItems =
+              grouped[lane] ?? [];
           return Container(
             width: laneWidth,
             margin: EdgeInsets.only(right: lane == lanes.last ? 0 : gap),
@@ -206,20 +212,20 @@ class _KanbanPrListState extends State<_KanbanPrList> {
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
+                  children: [
                     Text(
-                      _laneLabel(l10n, lane),
+                      _laneLabel(_l10n, lane),
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 12),
                     Expanded(
                       child: laneItems.isEmpty
-                          ? Text(l10n.emptyState)
+                          ? Text(_l10n.emptyState)
                           : ListView.builder(
                               itemCount: laneItems.length,
                               itemBuilder:
-                                  (BuildContext context, int index) {
-                                final PullRequest pr = laneItems[index];
+                                  (context, index) {
+                                final pr = laneItems[index];
                                 return Padding(
                                   padding:
                                       const EdgeInsets.only(bottom: 8),
@@ -235,7 +241,7 @@ class _KanbanPrListState extends State<_KanbanPrList> {
           );
         }).toList();
 
-        final Widget row = Row(
+        final row = Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: columns,
         );
@@ -265,13 +271,13 @@ class _PrCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: ListTile(
         title: Text('${pr.projectAlias} • ${pr.branch}'),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
+          children: [
             if (pr.jiraTicket != null)
               Text('${l10n.jiraTicket}: ${pr.jiraTicket}'),
             if (pr.prLink != null) Text('${l10n.prLink}: ${pr.prLink}'),
@@ -283,7 +289,7 @@ class _PrCard extends ConsumerWidget {
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
+          children: [
             IconButton(
               icon: const Icon(Icons.edit),
               onPressed: () => showDialog(
@@ -306,13 +312,13 @@ class _PrCard extends ConsumerWidget {
     WidgetRef ref,
     int id,
   ) async {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final bool? shouldDelete = await showDialog<bool>(
+    final l10n = AppLocalizations.of(context)!;
+    final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: Text(l10n.deletePrTitle),
         content: Text(l10n.deletePrMessage),
-        actions: <Widget>[
+        actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(l10n.cancel),
@@ -337,14 +343,14 @@ class _PrCard extends ConsumerWidget {
 }
 
 Map<_PrLane, List<PullRequest>> _groupByLane(List<PullRequest> prs) {
-  final Map<_PrLane, List<PullRequest>> grouped = <_PrLane, List<PullRequest>>{
+  final grouped = <_PrLane, List<PullRequest>>{
     _PrLane.unreleased: <PullRequest>[],
     _PrLane.develop: <PullRequest>[],
     _PrLane.uat: <PullRequest>[],
     _PrLane.preprod: <PullRequest>[],
   };
 
-  for (final PullRequest pr in prs) {
+  for (final pr in prs) {
     grouped[_resolveLane(pr)]!.add(pr);
   }
   return grouped;

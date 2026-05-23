@@ -25,7 +25,7 @@ final prSyncServiceProvider = Provider<PrSyncService>(
 );
 
 final schedulerNextRunProvider = StreamProvider<DateTime?>((ref) {
-  final PrSyncService syncService = ref.watch(prSyncServiceProvider);
+  final syncService = ref.watch(prSyncServiceProvider);
   return syncService.nextRunStream;
 });
 

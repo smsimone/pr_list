@@ -11,8 +11,7 @@ class DashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    assert(true);
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
     final stateAsync = ref.watch(dashboardProvider);
 
     return Scaffold(
@@ -24,7 +23,7 @@ class DashboardPage extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
+          children: [
                   Expanded(
                     child: _DashboardColumn(
                       title: l10n.dashboardUnreleased,
@@ -58,13 +57,13 @@ class _DashboardColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
+          children: [
             Padding(
               padding: const EdgeInsets.all(4),
               child: Text(
@@ -78,8 +77,8 @@ class _DashboardColumn extends StatelessWidget {
                   ? EmptyState(message: l10n.emptyState)
                   : ListView.builder(
                       itemCount: prs.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        final PullRequest pr = prs[index];
+                      itemBuilder: (context, index) {
+                        final pr = prs[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Card(

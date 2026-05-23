@@ -26,7 +26,7 @@ class ProjectRepository {
     try {
       final query = _db.select(_db.projects)
         ..where((tbl) => tbl.alias.equals(alias));
-      final Project? item = await query.getSingleOrNull();
+      final item = await query.getSingleOrNull();
       return Either.right(item);
     } catch (err) {
       return Either.left(Failure(message: 'Load project failed', cause: err));
@@ -37,7 +37,7 @@ class ProjectRepository {
     assert(id > 0, 'id must be greater than 0');
     try {
       final query = _db.select(_db.projects)..where((tbl) => tbl.id.equals(id));
-      final Project? item = await query.getSingleOrNull();
+      final item = await query.getSingleOrNull();
       return Either.right(item);
     } catch (err) {
       return Either.left(Failure(message: 'Load project failed', cause: err));
@@ -50,9 +50,9 @@ class ProjectRepository {
   }) async {
     assert(alias.trim().isNotEmpty, 'alias must not be empty');
     assert(path.trim().isNotEmpty, 'path must not be empty');
-    final DateTime now = DateTime.now();
+    final now = DateTime.now();
     try {
-      final int id = await _db
+      final id = await _db
           .into(_db.projects)
           .insert(
             ProjectsCompanion.insert(

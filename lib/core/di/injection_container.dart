@@ -15,7 +15,7 @@ import 'package:pr_list/core/services/secure_storage_service.dart';
 import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/core/utils/failure.dart';
 
-final GetIt getIt = GetIt.instance;
+final getIt = GetIt.instance;
 
 Future<Either<Failure, void>> initDependencies() async {
   try {

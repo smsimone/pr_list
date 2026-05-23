@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppTextTheme {
-  static const String kFontFamily = 'IBMPlexSans';
+  static const kFontFamily = 'IBMPlexSans';
 
   static TextTheme light() {
     return ThemeData(

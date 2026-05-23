@@ -5,18 +5,18 @@ import 'package:pr_list/features/pr_list/pr_list_page.dart';
 import 'package:pr_list/features/projects/projects_page.dart';
 import 'package:pr_list/shared/widgets/app_scaffold.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-final GoRouter appRouter = GoRouter(
+final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  routes: <RouteBase>[
+  routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return AppScaffold(navigationShell: navigationShell);
       },
-      branches: <StatefulShellBranch>[
+      branches: [
         StatefulShellBranch(
-          routes: <RouteBase>[
+          routes: [
             GoRoute(
               path: '/',
               name: 'pr-list',
@@ -25,7 +25,7 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
         StatefulShellBranch(
-          routes: <RouteBase>[
+          routes: [
             GoRoute(
               path: '/projects',
               name: 'projects',
@@ -34,7 +34,7 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
         StatefulShellBranch(
-          routes: <RouteBase>[
+          routes: [
             GoRoute(
               path: '/dashboard',
               name: 'dashboard',

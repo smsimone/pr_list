@@ -37,10 +37,10 @@ class PrListNotifier extends StateNotifier<PrListState> {
     this._gitClient,
   ) : super(PrListState.initial()) {
     _subscription = _repository.watchAll().listen(
-      (List<PullRequest> items) {
+      (items) {
         state = state.copyWith(items: items, isLoading: false);
       },
-      onError: (Object err) {
+      onError: (err) {
         state = state.copyWith(
           errorMessage: 'Failed to load PRs',
           isLoading: false,
@@ -75,7 +75,7 @@ class PrListNotifier extends StateNotifier<PrListState> {
         }
       }
     }
-    final Either<PrOperationException, void> validation = await _validateBranch(
+    final validation = await _validateBranch(
       projectAlias: projectAlias,
       branch: branch,
     );
@@ -125,7 +125,7 @@ class PrListNotifier extends StateNotifier<PrListState> {
         }
       }
     }
-    final Either<PrOperationException, void> validation = await _validateBranch(
+    final validation = await _validateBranch(
       projectAlias: projectAlias,
       branch: branch,
     );
@@ -176,7 +176,7 @@ class PrListNotifier extends StateNotifier<PrListState> {
         ),
       );
     }
-    final Project? project = projectResult.right;
+    final project = projectResult.right;
     if (project == null) {
       return const Either.left(
         PrOperationException(PrOperationErrorCode.projectNotFound),

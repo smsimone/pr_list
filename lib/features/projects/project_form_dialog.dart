@@ -8,7 +8,6 @@ import 'package:pr_list/core/db/app_database.dart';
 import 'package:pr_list/core/di/injection_container.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:pr_list/core/services/git_client.dart';
-import 'package:pr_list/core/utils/failure.dart';
 import 'package:pr_list/features/projects/projects_providers.dart';
 import 'package:path/path.dart' as p;
 
@@ -23,12 +22,12 @@ class ProjectFormDialog extends ConsumerStatefulWidget {
 }
 
 class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
   late TextEditingController _aliasController;
   late TextEditingController _pathController;
   bool _isSaving = false;
   String? _submitError;
-  final Logger _logger = Logger('ProjectFormDialog');
+  final _logger = Logger('ProjectFormDialog');
 
   @override
   void initState() {
@@ -49,7 +48,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
   Future<void> _pickFolder() async {
     _logger.info('Opening folder picker');
     try {
-      final String? directory = await FilePicker.platform.getDirectoryPath();
+      final directory = await FilePicker.platform.getDirectoryPath();
       if (directory == null) {
         _logger.info('Folder picker cancelled by user');
         return;
@@ -63,8 +62,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    assert(true);
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
       title: Text(widget.existing == null ? l10n.addProject : l10n.editProject),
       content: SizedBox(
@@ -73,7 +71,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
+            children: [
               TextFormField(
                 controller: _aliasController,
                 decoration: InputDecoration(labelText: l10n.projectAlias),
@@ -83,7 +81,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
               ),
               const SizedBox(height: 12),
               Row(
-                children: <Widget>[
+                children: [
                   Expanded(
                     child: TextFormField(
                       controller: _pathController,
@@ -98,7 +96,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
                   ),
                 ],
               ),
-              if (_submitError != null) ...<Widget>[
+              if (_submitError != null) ...[
                 const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -114,7 +112,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
           ),
         ),
       ),
-      actions: <Widget>[
+      actions: [
         TextButton(
           onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
@@ -128,14 +126,14 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
   }
 
   String? _validatePath(String? value, AppLocalizations l10n) {
-    final String path = value?.trim() ?? '';
+    final path = value?.trim() ?? '';
     if (path.isEmpty) {
       return l10n.validationProjectPathRequired;
     }
     if (!p.isAbsolute(path)) {
       return l10n.validationProjectPathMustBeAbsolute;
     }
-    final Directory dir = Directory(path);
+    final dir = Directory(path);
     if (!dir.existsSync()) {
       return l10n.validationProjectPathNotFound;
     }
@@ -150,10 +148,10 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
       _isSaving = true;
       _submitError = null;
     });
-    final String path = _pathController.text.trim();
+    final path = _pathController.text.trim();
     _logger.info('Saving project at path: $path');
 
-    final GitClient gitClient = getIt<GitClient>();
+    final gitClient = getIt<GitClient>();
     final hasRemoteResult = await gitClient.hasRemote(
       workingDirectory: path,
     );
@@ -161,7 +159,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
       return;
     }
     if (hasRemoteResult.isLeft) {
-      final Failure failure = hasRemoteResult.left;
+      final failure = hasRemoteResult.left;
       _logger.warning('Git validation failed: ${failure.message}');
       _logger.warning('Git error cause: ${failure.cause}');
       final String detail = failure.cause != null

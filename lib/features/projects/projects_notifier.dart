@@ -70,7 +70,7 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
         if (projectResult.isLeft) {
           throw Exception(projectResult.left.message);
         }
-        final Project? project = projectResult.right;
+        final project = projectResult.right;
         if (project == null) {
           throw Exception('Project not found');
         }

@@ -19,7 +19,8 @@ class PrFormDialog extends ConsumerStatefulWidget {
 }
 
 class _PrFormDialogState extends ConsumerState<PrFormDialog> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
+  late AppLocalizations _l10n;
   late TextEditingController _projectController;
   late TextEditingController _branchController;
   late TextEditingController _ticketController;
@@ -54,6 +55,12 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _l10n = AppLocalizations.of(context)!;
+  }
+
+  @override
   void dispose() {
     _ticketController.removeListener(_onTicketChanged);
     _projectController.dispose();
@@ -77,7 +84,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   }
 
   Future<void> _loadBranches(String projectAlias) async {
-    final Project? project = ref
+    final project = ref
         .read(projectsNotifierProvider)
         .items
         .where((p) => p.alias == projectAlias)
@@ -86,7 +93,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
 
     setState(() => _branchesLoading = true);
 
-    final BranchCacheService cacheService = getIt<BranchCacheService>();
+    final cacheService = getIt<BranchCacheService>();
     final result = await cacheService.getBranches(project.path);
 
     if (!mounted) return;
@@ -99,69 +106,66 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     });
   }
 
-  String? _validateBranch(String? value, AppLocalizations l10n) {
-    final String branch = value?.trim() ?? '';
+  String? _validateBranch(String? value) {
+    final branch = value?.trim() ?? '';
     if (branch.isEmpty) {
-      return l10n.validationBranchRequired;
+      return _l10n.validationBranchRequired;
     }
     if (branch.contains(RegExp(r'\s'))) {
-      return l10n.validationBranchNoSpaces;
+      return _l10n.validationBranchNoSpaces;
     }
     return null;
   }
 
-  String? _validatePrLink(String? value, AppLocalizations l10n) {
-    final String link = value?.trim() ?? '';
+  String? _validatePrLink(String? value) {
+    final link = value?.trim() ?? '';
     if (link.isEmpty) {
       return null;
     }
     final Uri? uri = Uri.tryParse(link);
     if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-      return l10n.validationInvalidPrUrl;
+      return _l10n.validationInvalidPrUrl;
     }
     return null;
   }
 
   String _resolveSubmitError(
-    AppLocalizations l10n,
     PrOperationException exception,
   ) {
     switch (exception.code) {
       case PrOperationErrorCode.projectNotFound:
-        return l10n.validationProjectNotFound;
+        return _l10n.validationProjectNotFound;
       case PrOperationErrorCode.invalidProjectRepository:
-        return l10n.validationProjectRepoInvalid;
+        return _l10n.validationProjectRepoInvalid;
       case PrOperationErrorCode.branchNotFound:
-        return l10n.validationBranchNotFound;
+        return _l10n.validationBranchNotFound;
       case PrOperationErrorCode.persistenceFailure:
-        return l10n.genericSaveError;
+        return _l10n.genericSaveError;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    assert(true);
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
     final projectsState = ref.watch(projectsNotifierProvider);
     return AlertDialog(
-      title: Text(widget.existing == null ? l10n.addPr : l10n.editPr),
+      title: Text(widget.existing == null ? _l10n.addPr : _l10n.editPr),
       content: SizedBox(
         width: 520,
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
+            children: [
               Row(
-                children: <Widget>[
+                children: [
                   Expanded(
                     child: Autocomplete<String>(
                       initialValue: TextEditingValue(
                         text: _projectController.text,
                       ),
                       optionsBuilder: (TextEditingValue value) {
-                        final String query = value.text.trim().toLowerCase();
-                        final List<String> aliases = projectsState.items
+                        final query = value.text.trim().toLowerCase();
+                        final aliases = projectsState.items
                             .map((p) => p.alias)
                             .toList();
                         if (query.isEmpty) {
@@ -192,11 +196,11 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                               controller: textController,
                               focusNode: focusNode,
                               decoration: InputDecoration(
-                                labelText: l10n.projectAlias,
+                                labelText: _l10n.projectAlias,
                               ),
                               validator: (value) =>
                                   value == null || value.trim().isEmpty
-                                  ? l10n.projectAlias
+                                  ? _l10n.projectAlias
                                   : null,
                               onChanged: (value) {
                                 _projectController.text = value;
@@ -215,7 +219,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                             : _projectController.text.trim(),
                       ),
                     ),
-                    child: Text(l10n.createAlias),
+                    child: Text(_l10n.createAlias),
                   ),
                 ],
               ),
@@ -226,9 +230,9 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                 ),
                 optionsBuilder: (TextEditingValue value) {
                   if (_branchesLoading || _branches.isEmpty) {
-                    return <String>[];
+                    return [];
                   }
-                  final String query = value.text.trim().toLowerCase();
+                  final query = value.text.trim().toLowerCase();
                   if (query.isEmpty) {
                     return _branches;
                   }
@@ -236,7 +240,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                       .where((b) => b.toLowerCase().contains(query))
                       .toList();
                 },
-                onSelected: (String value) {
+                onSelected: (value) {
                   _branchController.text = value;
                   _onBranchChanged(value);
                 },
@@ -254,7 +258,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                     controller: textController,
                     focusNode: focusNode,
                     decoration: InputDecoration(
-                      labelText: l10n.branch,
+                      labelText: _l10n.branch,
                       suffixIcon: _branchesLoading
                           ? const SizedBox(
                               width: 20,
@@ -268,7 +272,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                             )
                           : null,
                     ),
-                    validator: (value) => _validateBranch(value, l10n),
+                    validator: (value) => _validateBranch(value),
                     onChanged: (value) {
                       _branchController.text = value;
                     },
@@ -278,7 +282,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _ticketController,
-                decoration: InputDecoration(labelText: l10n.jiraTicket),
+                decoration: InputDecoration(labelText: _l10n.jiraTicket),
                 onChanged: (_) {
                   if (_submitError != null) {
                     setState(() => _submitError = null);
@@ -288,8 +292,8 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _linkController,
-                decoration: InputDecoration(labelText: l10n.prLink),
-                validator: (value) => _validatePrLink(value, l10n),
+                decoration: InputDecoration(labelText: _l10n.prLink),
+                validator: (value) => _validatePrLink(value),
               ),
               const SizedBox(height: 12),
               CheckboxListTile(
@@ -299,10 +303,10 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                     : (value) {
                         setState(() => _ticketClosed = value ?? false);
                       },
-                title: Text(l10n.ticketClosed),
+                title: Text(_l10n.ticketClosed),
                 controlAffinity: ListTileControlAffinity.leading,
               ),
-              if (_submitError != null) ...<Widget>[
+              if (_submitError != null) ...[
                 const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -318,10 +322,10 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
           ),
         ),
       ),
-      actions: <Widget>[
+      actions: [
         TextButton(
           onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
+          child: Text(_l10n.cancel),
         ),
         FilledButton(
           onPressed: _isSaving
@@ -335,11 +339,11 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                     _submitError = null;
                   });
                   final notifier = ref.read(prListNotifierProvider.notifier);
-                  final String? jiraTicket =
+                  final jiraTicket =
                       _ticketController.text.trim().isEmpty
                       ? null
                       : _ticketController.text.trim();
-                  final String? prLink = _linkController.text.trim().isEmpty
+                  final prLink = _linkController.text.trim().isEmpty
                       ? null
                       : _linkController.text.trim();
                   final result = widget.existing == null
@@ -360,14 +364,10 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                   if (!mounted) {
                     return;
                   }
-                  final AppLocalizations currentL10n = AppLocalizations.of(
-                    this.context,
-                  )!;
                   if (result.isLeft) {
                     setState(() {
                       _isSaving = false;
                       _submitError = _resolveSubmitError(
-                        currentL10n,
                         result.left,
                       );
                     });
@@ -375,7 +375,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                   }
                   Navigator.of(this.context).pop();
                 },
-          child: Text(l10n.save),
+          child: Text(_l10n.save),
         ),
       ],
     );

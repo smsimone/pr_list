@@ -12,7 +12,7 @@ import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/core/utils/failure.dart';
 
 class PrSyncService {
-  static const Duration _kSyncInterval = Duration(minutes: 10);
+  static const _kSyncInterval = Duration(minutes: 10);
 
   final PrRepository _repository;
   final ProviderRegistry _providerRegistry;
@@ -68,14 +68,13 @@ class PrSyncService {
     _isSyncRunning = true;
     try {
       _logger.info('Starting PR sync');
-      final Either<Failure, List<PullRequest>> result =
-          await _loadPullRequests();
+      final result = await _loadPullRequests();
       if (result.isLeft) {
         _logger.warning('Failed to load PRs');
         return;
       }
 
-      for (final PullRequest pr in result.right) {
+      for (final pr in result.right) {
         if (pr.prLink == null || pr.prLink!.trim().isEmpty) {
           continue;
         }
@@ -84,18 +83,18 @@ class PrSyncService {
           continue;
         }
 
-        final Either<Failure, String?> patResult = await _loadPat();
+        final patResult = await _loadPat();
         if (patResult.isLeft) {
           _logger.warning('PAT read error');
           continue;
         }
-        final String? pat = patResult.right;
+        final pat = patResult.right;
         if (pat == null || pat.trim().isEmpty) {
           _logger.warning('PAT missing');
           continue;
         }
 
-        final Either<Failure, void> syncResult = await _syncProvider(
+        final syncResult = await _syncProvider(
           pr,
           provider,
           pat,
@@ -105,10 +104,10 @@ class PrSyncService {
           continue;
         }
 
-        final String? updatedStatus = await _loadProviderStatus(pr.id);
+        final updatedStatus = await _loadProviderStatus(pr.id);
         if (updatedStatus == 'completed') {
-          final String? lastCommit = await _loadLastCommit(pr.id);
-          final String? workingDir = await _resolveWorkingDirectory(pr);
+          final lastCommit = await _loadLastCommit(pr.id);
+          final workingDir = await _resolveWorkingDirectory(pr);
           await _syncEnvironments(pr.id, lastCommit, workingDir);
         }
       }
@@ -119,7 +118,7 @@ class PrSyncService {
 
   Future<Either<Failure, List<PullRequest>>> _loadPullRequests() async {
     try {
-      final List<PullRequest> prs = await _repository.watchAll().first;
+      final prs = await _repository.watchAll().first;
       return Either.right(prs);
     } catch (err) {
       return Either.left(Failure(message: 'Failed to load PRs', cause: err));
@@ -180,10 +179,10 @@ class PrSyncService {
       _logger.warning('git branch contains failed');
       return;
     }
-    final List<String> branches = result.right;
-    final bool isOnDevelop = branches.any((b) => b.endsWith('/develop'));
-    final bool isOnUat = branches.any((b) => b.endsWith('/uat'));
-    final bool isOnPreprod = branches.any((b) => b.endsWith('/preprod'));
+    final branches = result.right;
+    final isOnDevelop = branches.any((b) => b.endsWith('/develop'));
+    final isOnUat = branches.any((b) => b.endsWith('/uat'));
+    final isOnPreprod = branches.any((b) => b.endsWith('/preprod'));
 
     await _repository.updateEnvironmentFlags(
       id: prId,

@@ -11,8 +11,15 @@ class PatSettingsDialog extends StatefulWidget {
 }
 
 class _PatSettingsDialogState extends State<PatSettingsDialog> {
-  final TextEditingController _patController = TextEditingController();
+  final _patController = TextEditingController();
+  late AppLocalizations _l10n;
   bool _isSaving = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _l10n = AppLocalizations.of(context)!;
+  }
 
   @override
   void dispose() {
@@ -22,25 +29,23 @@ class _PatSettingsDialogState extends State<PatSettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    assert(true);
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: Text(l10n.azurePatTitle),
+      title: Text(_l10n.azurePatTitle),
       content: TextField(
         controller: _patController,
-        decoration: InputDecoration(labelText: l10n.azurePatLabel),
+        decoration: InputDecoration(labelText: _l10n.azurePatLabel),
         obscureText: true,
       ),
-      actions: <Widget>[
+      actions: [
         TextButton(
           onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
+          child: Text(_l10n.cancel),
         ),
         FilledButton(
           onPressed: _isSaving
               ? null
               : () async {
-                  final String value = _patController.text.trim();
+                  final value = _patController.text.trim();
                   if (value.isEmpty) {
                     return;
                   }
@@ -51,7 +56,7 @@ class _PatSettingsDialogState extends State<PatSettingsDialog> {
                     Navigator.of(context).pop();
                   }
                 },
-          child: Text(l10n.save),
+          child: Text(_l10n.save),
         ),
       ],
     );

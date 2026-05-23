@@ -16,9 +16,9 @@ class LocalGitClient implements GitClient {
       'workingDirectory must not be empty',
     );
     try {
-      final ProcessResult result = await Process.run(
+      final result = await Process.run(
         'git',
-        <String>['branch', '-r', '--contains', commitSha],
+        ['branch', '-r', '--contains', commitSha],
         workingDirectory: workingDirectory,
         runInShell: true,
       );
@@ -27,11 +27,11 @@ class LocalGitClient implements GitClient {
           Failure(message: 'git command failed', cause: result.stderr),
         );
       }
-      final String output = result.stdout.toString();
-      final List<String> branches = output
+      final output = result.stdout.toString();
+      final branches = output
           .split('\n')
-          .map((String line) => line.trim())
-          .where((String line) => line.isNotEmpty)
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty)
           .toList();
       return Either.right(branches);
     } catch (err) {
@@ -49,11 +49,11 @@ class LocalGitClient implements GitClient {
       workingDirectory.trim().isNotEmpty,
       'workingDirectory must not be empty',
     );
-    final String branchName = branch.trim();
+    final branchName = branch.trim();
     try {
-      final ProcessResult result = await Process.run(
+      final result = await Process.run(
         'git',
-        <String>['branch', '-a', '--list', branchName, '*/$branchName'],
+        ['branch', '-a', '--list', branchName, '*/$branchName'],
         workingDirectory: workingDirectory,
         runInShell: true,
       );
@@ -62,21 +62,21 @@ class LocalGitClient implements GitClient {
           Failure(message: 'git command failed', cause: result.stderr),
         );
       }
-      final String output = result.stdout.toString();
-      final List<String> rawBranches = output
+      final output = result.stdout.toString();
+      final rawBranches = output
           .split('\n')
-          .map((String line) => line.trim())
-          .where((String line) => line.isNotEmpty)
+          .map((line) => line.trim())
+          .where((line) => line.isNotEmpty)
           .toList();
-      final Set<String> normalizedBranches = rawBranches
+      final normalizedBranches = rawBranches
           .map(_normalizeBranchName)
-          .where((String line) => line.isNotEmpty)
+          .where((line) => line.isNotEmpty)
           .toSet();
-      final String normalizedInput = _normalizeBranchName(branchName);
-      final bool exists =
+      final normalizedInput = _normalizeBranchName(branchName);
+      final exists =
           normalizedBranches.contains(normalizedInput) ||
           normalizedBranches.any(
-            (String item) => item.endsWith('/$branchName'),
+            (item) => item.endsWith('/$branchName'),
           );
       return Either.right(exists);
     } catch (err) {
@@ -93,9 +93,9 @@ class LocalGitClient implements GitClient {
       'workingDirectory must not be empty',
     );
     try {
-      final ProcessResult result = await Process.run(
+      final result = await Process.run(
         'git',
-        <String>['remote'],
+        ['remote'],
         workingDirectory: workingDirectory,
         runInShell: true,
       );
@@ -104,11 +104,11 @@ class LocalGitClient implements GitClient {
           Failure(message: 'git command failed', cause: result.stderr),
         );
       }
-      final String output = result.stdout.toString();
-      final bool hasConfiguredRemote = output
+      final output = result.stdout.toString();
+      final hasConfiguredRemote = output
           .split('\n')
-          .map((String line) => line.trim())
-          .any((String line) => line.isNotEmpty);
+          .map((line) => line.trim())
+          .any((line) => line.isNotEmpty);
       return Either.right(hasConfiguredRemote);
     } catch (err) {
       return Either.left(Failure(message: 'git command error', cause: err));
@@ -126,9 +126,9 @@ class LocalGitClient implements GitClient {
     );
     try {
       if (fetch) {
-        final ProcessResult fetchResult = await Process.run(
+        final fetchResult = await Process.run(
           'git',
-          <String>['fetch', '--prune', 'origin'],
+          ['fetch', '--prune', 'origin'],
           workingDirectory: workingDirectory,
           runInShell: true,
         );
@@ -139,9 +139,9 @@ class LocalGitClient implements GitClient {
         }
       }
 
-      final ProcessResult result = await Process.run(
+      final result = await Process.run(
         'git',
-        <String>['branch', '-a'],
+        ['branch', '-a'],
         workingDirectory: workingDirectory,
         runInShell: true,
       );
@@ -151,11 +151,11 @@ class LocalGitClient implements GitClient {
         );
       }
 
-      final String output = result.stdout.toString();
-      final List<String> branches = output
+      final output = result.stdout.toString();
+      final branches = output
           .split('\n')
-          .map((String line) => _normalizeBranchName(line))
-          .where((String line) => line.isNotEmpty)
+          .map((line) => _normalizeBranchName(line))
+          .where((line) => line.isNotEmpty)
           .toSet()
           .toList();
       return Either.right(branches);

@@ -41,8 +41,8 @@ class Projects extends Table {
   DateTimeColumn get updatedAt => dateTime()();
 
   @override
-  List<Set<Column>> get uniqueKeys => <Set<Column>>[
-    <Column>{alias},
+  List<Set<Column>> get uniqueKeys => [
+    {alias},
   ];
 }
 
@@ -53,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => _migrations.last.version;
 
-  List<_MigrationStep> get _migrations => <_MigrationStep>[
+  List<_MigrationStep> get _migrations => [
     _MigrationStep(
       version: 1,
       checksum: '20240522_init',
@@ -92,7 +92,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> _applyMigrations(Migrator m, int from, int to) async {
     assert(from >= 0, 'from must be greater or equal to 0');
     assert(to >= from, 'to must be greater or equal to from');
-    final List<int> appliedVersions = await _loadAppliedVersions();
+    final appliedVersions = await _loadAppliedVersions();
     for (final _MigrationStep step in _migrations) {
       if (step.version <= from || step.version > to) {
         continue;
@@ -107,12 +107,12 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<int>> _loadAppliedVersions() async {
     try {
-      final List<int> versions = await customSelect(
+      final versions = await customSelect(
         'SELECT version FROM schema_migrations',
       ).map((row) => row.read<int>('version')).get();
       return versions;
     } catch (_) {
-      return <int>[];
+      return [];
     }
   }
 }
@@ -131,8 +131,8 @@ class _MigrationStep {
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
-    final Directory dir = await getApplicationDocumentsDirectory();
-    final File file = File(p.join(dir.path, 'pr_list.sqlite'));
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dir.path, 'pr_list.sqlite'));
     return NativeDatabase(file);
   });
 }

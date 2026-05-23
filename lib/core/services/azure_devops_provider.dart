@@ -32,7 +32,7 @@ class AzureDevOpsProvider implements GitProvider {
     if (parsed.pathSegments.isEmpty) {
       return const Either.left(Failure(message: 'Missing path segments'));
     }
-    final String last = parsed.pathSegments.last;
+    final last = parsed.pathSegments.last;
     if (last.trim().isEmpty) {
       return const Either.left(Failure(message: 'Missing pull request id'));
     }
@@ -65,15 +65,15 @@ class AzureDevOpsProvider implements GitProvider {
     final String repository = parsed.pathSegments[2];
     final String pullRequestId = parsed.pathSegments.last;
 
-    final Uri apiUrl = Uri.parse(
+    final apiUrl = Uri.parse(
       'https://dev.azure.com/$organization/$project/_apis/git/repositories/$repository/pullRequests/$pullRequestId?api-version=7.1-preview.1',
     );
 
-    final String auth = base64Encode(utf8.encode(':$pat'));
+    final auth = base64Encode(utf8.encode(':$pat'));
     try {
-      final http.Response response = await http.get(
+      final response = await http.get(
         apiUrl,
-        headers: <String, String>{
+        headers: {
           'Authorization': 'Basic $auth',
           'Accept': 'application/json',
         },
@@ -88,13 +88,12 @@ class AzureDevOpsProvider implements GitProvider {
         );
       }
 
-      final Map<String, dynamic> body =
-          jsonDecode(response.body) as Map<String, dynamic>;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
 
-      final String status = (body['status'] as String?) ?? 'unknown';
-      final Map<String, dynamic>? lastMergeSourceCommit =
+      final status = (body['status'] as String?) ?? 'unknown';
+      final lastMergeSourceCommit =
           body['lastMergeSourceCommit'] as Map<String, dynamic>?;
-      final String lastCommit =
+      final lastCommit =
           (lastMergeSourceCommit?['commitId'] as String?) ?? '';
 
       if (lastCommit.isEmpty) {

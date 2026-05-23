@@ -16,7 +16,7 @@ Future<void> main() async {
     runApp(const _BootstrapErrorApp());
     return;
   }
-  final PrSyncService syncService = getIt<PrSyncService>();
+  final syncService = getIt<PrSyncService>();
   syncService.start();
   runApp(const ProviderScope(child: PrListApp()));
 }
@@ -36,19 +36,18 @@ class PrListApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    assert(true);
     return MaterialApp.router(
       title: 'PR List',
       routerConfig: appRouter,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+      localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
-      supportedLocales: const <Locale>[Locale('en'), Locale('it')],
+      supportedLocales: const [Locale('en'), Locale('it')],
     );
   }
 }
@@ -58,7 +57,6 @@ class _BootstrapErrorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    assert(true);
     return const MaterialApp(
       home: Scaffold(body: Center(child: Text('Startup failed'))),
     );

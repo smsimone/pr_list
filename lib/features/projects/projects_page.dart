@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pr_list/core/db/app_database.dart';
 import 'package:pr_list/features/projects/project_form_dialog.dart';
 import 'package:pr_list/features/projects/projects_providers.dart';
 import 'package:pr_list/shared/widgets/empty_state.dart';
@@ -12,8 +11,7 @@ class ProjectsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    assert(true);
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(projectsNotifierProvider);
 
     return Scaffold(
@@ -39,14 +37,14 @@ class ProjectsPage extends ConsumerWidget {
               itemCount: state.items.length,
               separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final Project project = state.items[index];
+                final project = state.items[index];
                 return Card(
                   child: ListTile(
                     title: Text(project.alias),
                     subtitle: Text(project.path),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
+                      children: [
                         IconButton(
                           icon: const Icon(Icons.edit),
                           onPressed: () => showDialog(
@@ -77,13 +75,13 @@ class ProjectsPage extends ConsumerWidget {
     WidgetRef ref,
     int projectId,
   ) async {
-    final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final bool? shouldDelete = await showDialog<bool>(
+    final l10n = AppLocalizations.of(context)!;
+    final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: Text(l10n.deleteProjectTitle),
         content: Text(l10n.deleteProjectMessage),
-        actions: <Widget>[
+        actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(l10n.cancel),
