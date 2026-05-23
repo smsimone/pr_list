@@ -4,6 +4,7 @@ import 'package:logging/logging.dart';
 import 'package:pr_list/core/db/app_database.dart';
 import 'package:pr_list/core/services/azure_devops_provider.dart';
 import 'package:pr_list/core/services/branch_cache_service.dart';
+import 'package:pr_list/core/services/environment_mapping_repository.dart';
 import 'package:pr_list/core/services/git_client.dart';
 import 'package:pr_list/core/services/git_provider.dart';
 import 'package:pr_list/core/services/local_git_client.dart';
@@ -29,6 +30,9 @@ Future<Either<Failure, void>> initDependencies() async {
     getIt.registerLazySingleton<ProjectRepository>(
       () => ProjectRepository(getIt<AppDatabase>()),
     );
+    getIt.registerLazySingleton<EnvironmentMappingRepository>(
+      () => EnvironmentMappingRepository(getIt<AppDatabase>()),
+    );
 
     getIt.registerLazySingleton<GitProvider>(AzureDevOpsProvider.new);
     getIt.registerLazySingleton<ProviderRegistry>(
@@ -50,6 +54,7 @@ Future<Either<Failure, void>> initDependencies() async {
         getIt<GitClient>(),
         getIt<SecureStorageService>(),
         getIt<ProjectRepository>(),
+        getIt<EnvironmentMappingRepository>(),
         getIt<Logger>(),
       ),
     );

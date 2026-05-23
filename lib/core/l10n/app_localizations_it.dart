@@ -175,4 +175,22 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get tabLogs => 'Log';
+
+  @override
+  String get envMappingsTitle => 'Mapping ambienti';
+
+  @override
+  String get envMappingNameLabel => 'Nome';
+
+  @override
+  String get envMappingPatternLabel => 'Suffisso branch';
+
+  @override
+  String get envMappingDefault => 'non impostato';
+
+  @override
+  String get genericError => 'Si è verificato un errore';
+
+  @override
+  String get envSettings => 'Ambienti';
 }

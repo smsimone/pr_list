@@ -421,6 +421,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Logs'**
   String get tabLogs;
+
+  /// No description provided for @envMappingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Environment mappings'**
+  String get envMappingsTitle;
+
+  /// No description provided for @envMappingNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get envMappingNameLabel;
+
+  /// No description provided for @envMappingPatternLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Branch suffix'**
+  String get envMappingPatternLabel;
+
+  /// No description provided for @envMappingDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'not set'**
+  String get envMappingDefault;
+
+  /// No description provided for @genericError.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred'**
+  String get genericError;
+
+  /// No description provided for @envSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Environments'**
+  String get envSettings;
 }
 
 class _AppLocalizationsDelegate

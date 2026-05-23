@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 import 'package:pr_list/core/db/app_database.dart';
+import 'package:pr_list/core/services/environment_mapping_repository.dart';
 import 'package:pr_list/core/services/git_client.dart';
 import 'package:pr_list/core/services/git_provider.dart';
 import 'package:pr_list/core/services/pr_repository.dart';
@@ -19,6 +20,7 @@ class PrSyncService {
   final GitClient _gitClient;
   final SecureStorageService _secureStorage;
   final ProjectRepository _projectRepository;
+  final EnvironmentMappingRepository _envMappingRepository;
   final Logger _logger;
   Timer? _pollingTimer;
   Timer? _countdownTickTimer;
@@ -33,6 +35,7 @@ class PrSyncService {
     this._gitClient,
     this._secureStorage,
     this._projectRepository,
+    this._envMappingRepository,
     this._logger,
   );
 
@@ -210,18 +213,23 @@ class PrSyncService {
       return;
     }
     final branches = result.right;
-    final isOnDevelop = branches.any((b) => b.endsWith('/develop'));
-    final isOnUat = branches.any((b) => b.endsWith('/uat'));
-    final isOnPreprod = branches.any((b) => b.endsWith('/preprod'));
+    final envResult = await _envMappingRepository.getAll();
+    List<bool> flags;
+    if (envResult.isLeft) {
+      _logger.warning('PR #$prId: failed to load env mappings, using defaults');
+      flags = _defaultEnvFlags(branches);
+    } else {
+      flags = _resolveEnvFlags(branches, envResult.right);
+    }
 
     _logger.info(
-      'PR #$prId: environment flags -> develop=$isOnDevelop, uat=$isOnUat, preprod=$isOnPreprod (branches: $branches)',
+      'PR #$prId: environment flags -> $flags (branches: $branches)',
     );
     await _repository.updateEnvironmentFlags(
       id: prId,
-      isOnDevelop: isOnDevelop,
-      isOnUat: isOnUat,
-      isOnPreprod: isOnPreprod,
+      isOnDevelop: flags.isNotEmpty ? flags[0] : false,
+      isOnUat: flags.length > 1 ? flags[1] : false,
+      isOnPreprod: flags.length > 2 ? flags[2] : false,
     );
   }
 
@@ -265,5 +273,24 @@ class PrSyncService {
       _nextRunAt = DateTime.now().add(_kSyncInterval);
       _nextRunController.add(_nextRunAt);
     });
+  }
+
+  List<bool> _defaultEnvFlags(List<String> branches) {
+    return [
+      branches.any((b) => b.endsWith('/develop')),
+      branches.any((b) => b.endsWith('/uat')),
+      branches.any((b) => b.endsWith('/preprod')),
+    ];
+  }
+
+  List<bool> _resolveEnvFlags(
+    List<String> branches,
+    List<EnvironmentMapping> mappings,
+  ) {
+    return mappings.map((m) {
+      final pattern = m.branchPattern.trim();
+      if (pattern.isEmpty) return false;
+      return branches.any((b) => b.endsWith('/$pattern'));
+    }).toList();
   }
 }

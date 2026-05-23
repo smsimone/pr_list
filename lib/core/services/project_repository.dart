@@ -53,18 +53,20 @@ class ProjectRepository {
   Future<Either<Failure, int>> create({
     required String alias,
     required String path,
+    int? color,
   }) async {
     assert(alias.trim().isNotEmpty, 'alias must not be empty');
     assert(path.trim().isNotEmpty, 'path must not be empty');
     final now = DateTime.now();
     try {
-      _logger.info('Creating project: $alias at $path');
+      _logger.info('Creating project: $alias at $path (color=$color)');
       final id = await _db
           .into(_db.projects)
           .insert(
             ProjectsCompanion.insert(
               alias: alias,
               path: path,
+              color: Value(color),
               createdAt: now,
               updatedAt: now,
             ),
@@ -81,16 +83,18 @@ class ProjectRepository {
     required int id,
     required String alias,
     required String path,
+    int? color,
   }) async {
     assert(id > 0, 'id must be greater than 0');
     assert(alias.trim().isNotEmpty, 'alias must not be empty');
     assert(path.trim().isNotEmpty, 'path must not be empty');
     try {
-      _logger.info('Updating project #$id: $alias');
+      _logger.info('Updating project #$id: $alias (color=$color)');
       await (_db.update(_db.projects)..where((t) => t.id.equals(id))).write(
         ProjectsCompanion(
           alias: Value(alias),
           path: Value(path),
+          color: Value(color),
           updatedAt: Value(DateTime.now()),
         ),
       );

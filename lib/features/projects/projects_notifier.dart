@@ -42,11 +42,12 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
   Future<Either<Exception, void>> addProject({
     required String alias,
     required String path,
+    int? color,
   }) async {
     assert(alias.trim().isNotEmpty, 'alias must not be empty');
     assert(path.trim().isNotEmpty, 'path must not be empty');
-    _logger.info('Adding project: $alias at $path');
-    final result = await _repository.create(alias: alias, path: path);
+    _logger.info('Adding project: $alias at $path (color=$color)');
+    final result = await _repository.create(alias: alias, path: path, color: color);
     if (result.isLeft) {
       _logger.severe('Add project $alias failed: ${result.left.message}');
       return Either.left(Exception(result.left.message));
@@ -59,12 +60,13 @@ class ProjectsNotifier extends StateNotifier<ProjectsState> {
     required int id,
     required String alias,
     required String path,
+    int? color,
   }) async {
     assert(id > 0, 'id must be greater than 0');
     assert(alias.trim().isNotEmpty, 'alias must not be empty');
     assert(path.trim().isNotEmpty, 'path must not be empty');
-    _logger.info('Updating project #$id: $alias');
-    final result = await _repository.update(id: id, alias: alias, path: path);
+    _logger.info('Updating project #$id: $alias (color=$color)');
+    final result = await _repository.update(id: id, alias: alias, path: path, color: color);
     if (result.isLeft) {
       _logger.severe('Update project #$id failed: ${result.left.message}');
       return Either.left(Exception(result.left.message));

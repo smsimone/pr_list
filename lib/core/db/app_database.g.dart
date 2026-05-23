@@ -1224,6 +1224,15 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1247,7 +1256,14 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, alias, path, createdAt, updatedAt];
+  List<GeneratedColumn> get $columns => [
+    id,
+    alias,
+    path,
+    color,
+    createdAt,
+    updatedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1278,6 +1294,12 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
       );
     } else if (isInserting) {
       context.missing(_pathMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -1320,6 +1342,10 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
         DriftSqlType.string,
         data['${effectivePrefix}path'],
       )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1341,12 +1367,14 @@ class Project extends DataClass implements Insertable<Project> {
   final int id;
   final String alias;
   final String path;
+  final int? color;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Project({
     required this.id,
     required this.alias,
     required this.path,
+    this.color,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -1356,6 +1384,9 @@ class Project extends DataClass implements Insertable<Project> {
     map['id'] = Variable<int>(id);
     map['alias'] = Variable<String>(alias);
     map['path'] = Variable<String>(path);
+    if (!nullToAbsent || color != null) {
+      map['color'] = Variable<int>(color);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -1366,6 +1397,9 @@ class Project extends DataClass implements Insertable<Project> {
       id: Value(id),
       alias: Value(alias),
       path: Value(path),
+      color: color == null && nullToAbsent
+          ? const Value.absent()
+          : Value(color),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -1380,6 +1414,7 @@ class Project extends DataClass implements Insertable<Project> {
       id: serializer.fromJson<int>(json['id']),
       alias: serializer.fromJson<String>(json['alias']),
       path: serializer.fromJson<String>(json['path']),
+      color: serializer.fromJson<int?>(json['color']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -1391,6 +1426,7 @@ class Project extends DataClass implements Insertable<Project> {
       'id': serializer.toJson<int>(id),
       'alias': serializer.toJson<String>(alias),
       'path': serializer.toJson<String>(path),
+      'color': serializer.toJson<int?>(color),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1400,12 +1436,14 @@ class Project extends DataClass implements Insertable<Project> {
     int? id,
     String? alias,
     String? path,
+    Value<int?> color = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Project(
     id: id ?? this.id,
     alias: alias ?? this.alias,
     path: path ?? this.path,
+    color: color.present ? color.value : this.color,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -1414,6 +1452,7 @@ class Project extends DataClass implements Insertable<Project> {
       id: data.id.present ? data.id.value : this.id,
       alias: data.alias.present ? data.alias.value : this.alias,
       path: data.path.present ? data.path.value : this.path,
+      color: data.color.present ? data.color.value : this.color,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1425,6 +1464,7 @@ class Project extends DataClass implements Insertable<Project> {
           ..write('id: $id, ')
           ..write('alias: $alias, ')
           ..write('path: $path, ')
+          ..write('color: $color, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1432,7 +1472,7 @@ class Project extends DataClass implements Insertable<Project> {
   }
 
   @override
-  int get hashCode => Object.hash(id, alias, path, createdAt, updatedAt);
+  int get hashCode => Object.hash(id, alias, path, color, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1440,6 +1480,7 @@ class Project extends DataClass implements Insertable<Project> {
           other.id == this.id &&
           other.alias == this.alias &&
           other.path == this.path &&
+          other.color == this.color &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1448,12 +1489,14 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
   final Value<int> id;
   final Value<String> alias;
   final Value<String> path;
+  final Value<int?> color;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const ProjectsCompanion({
     this.id = const Value.absent(),
     this.alias = const Value.absent(),
     this.path = const Value.absent(),
+    this.color = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -1461,6 +1504,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     this.id = const Value.absent(),
     required String alias,
     required String path,
+    this.color = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
   }) : alias = Value(alias),
@@ -1471,6 +1515,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     Expression<int>? id,
     Expression<String>? alias,
     Expression<String>? path,
+    Expression<int>? color,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -1478,6 +1523,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
       if (id != null) 'id': id,
       if (alias != null) 'alias': alias,
       if (path != null) 'path': path,
+      if (color != null) 'color': color,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -1487,6 +1533,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     Value<int>? id,
     Value<String>? alias,
     Value<String>? path,
+    Value<int?>? color,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -1494,6 +1541,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
       id: id ?? this.id,
       alias: alias ?? this.alias,
       path: path ?? this.path,
+      color: color ?? this.color,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -1511,6 +1559,9 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     if (path.present) {
       map['path'] = Variable<String>(path.value);
     }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1526,8 +1577,326 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
           ..write('id: $id, ')
           ..write('alias: $alias, ')
           ..write('path: $path, ')
+          ..write('color: $color, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $EnvironmentMappingsTable extends EnvironmentMappings
+    with TableInfo<$EnvironmentMappingsTable, EnvironmentMapping> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EnvironmentMappingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _environmentNameMeta = const VerificationMeta(
+    'environmentName',
+  );
+  @override
+  late final GeneratedColumn<String> environmentName = GeneratedColumn<String>(
+    'environment_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _branchPatternMeta = const VerificationMeta(
+    'branchPattern',
+  );
+  @override
+  late final GeneratedColumn<String> branchPattern = GeneratedColumn<String>(
+    'branch_pattern',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sortOrder,
+    environmentName,
+    branchPattern,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'environment_mappings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EnvironmentMapping> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sortOrderMeta);
+    }
+    if (data.containsKey('environment_name')) {
+      context.handle(
+        _environmentNameMeta,
+        environmentName.isAcceptableOrUnknown(
+          data['environment_name']!,
+          _environmentNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_environmentNameMeta);
+    }
+    if (data.containsKey('branch_pattern')) {
+      context.handle(
+        _branchPatternMeta,
+        branchPattern.isAcceptableOrUnknown(
+          data['branch_pattern']!,
+          _branchPatternMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_branchPatternMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EnvironmentMapping map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EnvironmentMapping(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      environmentName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}environment_name'],
+      )!,
+      branchPattern: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}branch_pattern'],
+      )!,
+    );
+  }
+
+  @override
+  $EnvironmentMappingsTable createAlias(String alias) {
+    return $EnvironmentMappingsTable(attachedDatabase, alias);
+  }
+}
+
+class EnvironmentMapping extends DataClass
+    implements Insertable<EnvironmentMapping> {
+  final int id;
+  final int sortOrder;
+  final String environmentName;
+  final String branchPattern;
+  const EnvironmentMapping({
+    required this.id,
+    required this.sortOrder,
+    required this.environmentName,
+    required this.branchPattern,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['environment_name'] = Variable<String>(environmentName);
+    map['branch_pattern'] = Variable<String>(branchPattern);
+    return map;
+  }
+
+  EnvironmentMappingsCompanion toCompanion(bool nullToAbsent) {
+    return EnvironmentMappingsCompanion(
+      id: Value(id),
+      sortOrder: Value(sortOrder),
+      environmentName: Value(environmentName),
+      branchPattern: Value(branchPattern),
+    );
+  }
+
+  factory EnvironmentMapping.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EnvironmentMapping(
+      id: serializer.fromJson<int>(json['id']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      environmentName: serializer.fromJson<String>(json['environmentName']),
+      branchPattern: serializer.fromJson<String>(json['branchPattern']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'environmentName': serializer.toJson<String>(environmentName),
+      'branchPattern': serializer.toJson<String>(branchPattern),
+    };
+  }
+
+  EnvironmentMapping copyWith({
+    int? id,
+    int? sortOrder,
+    String? environmentName,
+    String? branchPattern,
+  }) => EnvironmentMapping(
+    id: id ?? this.id,
+    sortOrder: sortOrder ?? this.sortOrder,
+    environmentName: environmentName ?? this.environmentName,
+    branchPattern: branchPattern ?? this.branchPattern,
+  );
+  EnvironmentMapping copyWithCompanion(EnvironmentMappingsCompanion data) {
+    return EnvironmentMapping(
+      id: data.id.present ? data.id.value : this.id,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      environmentName: data.environmentName.present
+          ? data.environmentName.value
+          : this.environmentName,
+      branchPattern: data.branchPattern.present
+          ? data.branchPattern.value
+          : this.branchPattern,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EnvironmentMapping(')
+          ..write('id: $id, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('environmentName: $environmentName, ')
+          ..write('branchPattern: $branchPattern')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, sortOrder, environmentName, branchPattern);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EnvironmentMapping &&
+          other.id == this.id &&
+          other.sortOrder == this.sortOrder &&
+          other.environmentName == this.environmentName &&
+          other.branchPattern == this.branchPattern);
+}
+
+class EnvironmentMappingsCompanion extends UpdateCompanion<EnvironmentMapping> {
+  final Value<int> id;
+  final Value<int> sortOrder;
+  final Value<String> environmentName;
+  final Value<String> branchPattern;
+  const EnvironmentMappingsCompanion({
+    this.id = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.environmentName = const Value.absent(),
+    this.branchPattern = const Value.absent(),
+  });
+  EnvironmentMappingsCompanion.insert({
+    this.id = const Value.absent(),
+    required int sortOrder,
+    required String environmentName,
+    required String branchPattern,
+  }) : sortOrder = Value(sortOrder),
+       environmentName = Value(environmentName),
+       branchPattern = Value(branchPattern);
+  static Insertable<EnvironmentMapping> custom({
+    Expression<int>? id,
+    Expression<int>? sortOrder,
+    Expression<String>? environmentName,
+    Expression<String>? branchPattern,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (environmentName != null) 'environment_name': environmentName,
+      if (branchPattern != null) 'branch_pattern': branchPattern,
+    });
+  }
+
+  EnvironmentMappingsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? sortOrder,
+    Value<String>? environmentName,
+    Value<String>? branchPattern,
+  }) {
+    return EnvironmentMappingsCompanion(
+      id: id ?? this.id,
+      sortOrder: sortOrder ?? this.sortOrder,
+      environmentName: environmentName ?? this.environmentName,
+      branchPattern: branchPattern ?? this.branchPattern,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (environmentName.present) {
+      map['environment_name'] = Variable<String>(environmentName.value);
+    }
+    if (branchPattern.present) {
+      map['branch_pattern'] = Variable<String>(branchPattern.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EnvironmentMappingsCompanion(')
+          ..write('id: $id, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('environmentName: $environmentName, ')
+          ..write('branchPattern: $branchPattern')
           ..write(')'))
         .toString();
   }
@@ -1541,6 +1910,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $ProjectsTable projects = $ProjectsTable(this);
+  late final $EnvironmentMappingsTable environmentMappings =
+      $EnvironmentMappingsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1549,6 +1920,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     pullRequests,
     schemaMigrations,
     projects,
+    environmentMappings,
   ];
 }
 
@@ -2138,6 +2510,7 @@ typedef $$ProjectsTableCreateCompanionBuilder =
       Value<int> id,
       required String alias,
       required String path,
+      Value<int?> color,
       required DateTime createdAt,
       required DateTime updatedAt,
     });
@@ -2146,6 +2519,7 @@ typedef $$ProjectsTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> alias,
       Value<String> path,
+      Value<int?> color,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -2171,6 +2545,11 @@ class $$ProjectsTableFilterComposer
 
   ColumnFilters<String> get path => $composableBuilder(
     column: $table.path,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2209,6 +2588,11 @@ class $$ProjectsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2237,6 +2621,9 @@ class $$ProjectsTableAnnotationComposer
 
   GeneratedColumn<String> get path =>
       $composableBuilder(column: $table.path, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2276,12 +2663,14 @@ class $$ProjectsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> alias = const Value.absent(),
                 Value<String> path = const Value.absent(),
+                Value<int?> color = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => ProjectsCompanion(
                 id: id,
                 alias: alias,
                 path: path,
+                color: color,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -2290,12 +2679,14 @@ class $$ProjectsTableTableManager
                 Value<int> id = const Value.absent(),
                 required String alias,
                 required String path,
+                Value<int?> color = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
               }) => ProjectsCompanion.insert(
                 id: id,
                 alias: alias,
                 path: path,
+                color: color,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -2321,6 +2712,201 @@ typedef $$ProjectsTableProcessedTableManager =
       Project,
       PrefetchHooks Function()
     >;
+typedef $$EnvironmentMappingsTableCreateCompanionBuilder =
+    EnvironmentMappingsCompanion Function({
+      Value<int> id,
+      required int sortOrder,
+      required String environmentName,
+      required String branchPattern,
+    });
+typedef $$EnvironmentMappingsTableUpdateCompanionBuilder =
+    EnvironmentMappingsCompanion Function({
+      Value<int> id,
+      Value<int> sortOrder,
+      Value<String> environmentName,
+      Value<String> branchPattern,
+    });
+
+class $$EnvironmentMappingsTableFilterComposer
+    extends Composer<_$AppDatabase, $EnvironmentMappingsTable> {
+  $$EnvironmentMappingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get environmentName => $composableBuilder(
+    column: $table.environmentName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get branchPattern => $composableBuilder(
+    column: $table.branchPattern,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$EnvironmentMappingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $EnvironmentMappingsTable> {
+  $$EnvironmentMappingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get environmentName => $composableBuilder(
+    column: $table.environmentName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get branchPattern => $composableBuilder(
+    column: $table.branchPattern,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$EnvironmentMappingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EnvironmentMappingsTable> {
+  $$EnvironmentMappingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get environmentName => $composableBuilder(
+    column: $table.environmentName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get branchPattern => $composableBuilder(
+    column: $table.branchPattern,
+    builder: (column) => column,
+  );
+}
+
+class $$EnvironmentMappingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EnvironmentMappingsTable,
+          EnvironmentMapping,
+          $$EnvironmentMappingsTableFilterComposer,
+          $$EnvironmentMappingsTableOrderingComposer,
+          $$EnvironmentMappingsTableAnnotationComposer,
+          $$EnvironmentMappingsTableCreateCompanionBuilder,
+          $$EnvironmentMappingsTableUpdateCompanionBuilder,
+          (
+            EnvironmentMapping,
+            BaseReferences<
+              _$AppDatabase,
+              $EnvironmentMappingsTable,
+              EnvironmentMapping
+            >,
+          ),
+          EnvironmentMapping,
+          PrefetchHooks Function()
+        > {
+  $$EnvironmentMappingsTableTableManager(
+    _$AppDatabase db,
+    $EnvironmentMappingsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EnvironmentMappingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EnvironmentMappingsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$EnvironmentMappingsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<String> environmentName = const Value.absent(),
+                Value<String> branchPattern = const Value.absent(),
+              }) => EnvironmentMappingsCompanion(
+                id: id,
+                sortOrder: sortOrder,
+                environmentName: environmentName,
+                branchPattern: branchPattern,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int sortOrder,
+                required String environmentName,
+                required String branchPattern,
+              }) => EnvironmentMappingsCompanion.insert(
+                id: id,
+                sortOrder: sortOrder,
+                environmentName: environmentName,
+                branchPattern: branchPattern,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$EnvironmentMappingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EnvironmentMappingsTable,
+      EnvironmentMapping,
+      $$EnvironmentMappingsTableFilterComposer,
+      $$EnvironmentMappingsTableOrderingComposer,
+      $$EnvironmentMappingsTableAnnotationComposer,
+      $$EnvironmentMappingsTableCreateCompanionBuilder,
+      $$EnvironmentMappingsTableUpdateCompanionBuilder,
+      (
+        EnvironmentMapping,
+        BaseReferences<
+          _$AppDatabase,
+          $EnvironmentMappingsTable,
+          EnvironmentMapping
+        >,
+      ),
+      EnvironmentMapping,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2331,4 +2917,6 @@ class $AppDatabaseManager {
       $$SchemaMigrationsTableTableManager(_db, _db.schemaMigrations);
   $$ProjectsTableTableManager get projects =>
       $$ProjectsTableTableManager(_db, _db.projects);
+  $$EnvironmentMappingsTableTableManager get environmentMappings =>
+      $$EnvironmentMappingsTableTableManager(_db, _db.environmentMappings);
 }

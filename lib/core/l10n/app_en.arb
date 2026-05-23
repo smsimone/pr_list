@@ -62,5 +62,11 @@
   "emptyState": "No PRs yet",
   "dashboardUnreleased": "Tickets not released",
   "dashboardUnclosed": "Tickets not closed",
-  "tabLogs": "Logs"
+  "tabLogs": "Logs",
+  "envMappingsTitle": "Environment mappings",
+  "envMappingNameLabel": "Name",
+  "envMappingPatternLabel": "Branch suffix",
+  "envMappingDefault": "not set",
+  "genericError": "An error occurred",
+  "envSettings": "Environments"
 }

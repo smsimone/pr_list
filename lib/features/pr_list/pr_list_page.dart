@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pr_list/core/db/app_database.dart';
-import 'package:pr_list/core/di/injection_container.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
-import 'package:pr_list/core/services/log_service.dart';
 import 'package:pr_list/features/pr_list/pr_form_dialog.dart';
 import 'package:pr_list/features/pr_list/pr_list_providers.dart';
-import 'package:pr_list/features/settings/pat_settings_dialog.dart';
+import 'package:pr_list/features/projects/projects_providers.dart';
+import 'package:pr_list/features/settings/env_mapping_providers.dart';
 import 'package:pr_list/shared/widgets/empty_state.dart';
 import 'package:pr_list/shared/widgets/responsive_container.dart';
 
@@ -20,97 +19,27 @@ class PrListPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(prListNotifierProvider);
     final viewMode = ref.watch(prListViewModeProvider);
-    final nextRunAsync = ref.watch(schedulerNextRunProvider);
-    final isSyncRunning = ref.watch(prSyncServiceProvider).isSyncRunning;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.tabPrList),
-        actions: [
-          TextButton.icon(
-            onPressed: isSyncRunning
-                ? null
-                : () async {
-                    final triggerSync = ref.read(
-                      triggerPrSyncProvider,
-                    );
-                    await triggerSync();
-                  },
-            icon: const Icon(Icons.schedule),
-            label: Text(_buildSchedulerLabel(l10n, nextRunAsync.value)),
-          ),
-          IconButton(
-            tooltip: viewMode == PrListViewMode.groupedList
-                ? l10n.viewKanban
-                : l10n.viewList,
-            onPressed: () {
-              ref
-                  .read(prListViewModeProvider.notifier)
-                  .state = viewMode == PrListViewMode.groupedList
-                  ? PrListViewMode.kanban
-                  : PrListViewMode.groupedList;
-            },
-            icon: Icon(
-              viewMode == PrListViewMode.groupedList
-                  ? Icons.view_kanban
-                  : Icons.view_list,
-            ),
-          ),
-          IconButton(
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => const PatSettingsDialog(),
-            ),
-            icon: const Icon(Icons.vpn_key),
-          ),
-          IconButton(
-            tooltip: l10n.tabLogs,
-            onPressed: () => getIt<LogService>().openLogWindow(),
-            icon: const Icon(Icons.terminal),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () =>
-            showDialog(context: context, builder: (_) => const PrFormDialog()),
-        child: const Icon(Icons.add),
-      ),
-      body: Builder(
-        builder: (context) {
-          if (state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state.items.isEmpty) {
-            return EmptyState(message: l10n.emptyState);
-          }
-
-          if (viewMode == PrListViewMode.groupedList) {
-            return ResponsiveContainer(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: _GroupedPrList(prs: state.items),
-              ),
-            );
-          }
-
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: _KanbanPrList(prs: state.items),
-          );
-        },
-      ),
-    );
-  }
-
-  String _buildSchedulerLabel(AppLocalizations l10n, DateTime? nextRun) {
-    if (nextRun == null) {
-      return l10n.schedulerNotScheduled;
+    if (state.isLoading) {
+      return const Center(child: CircularProgressIndicator());
     }
-    final remaining = nextRun.difference(DateTime.now());
-    final positive = remaining.isNegative ? Duration.zero : remaining;
-    final minutes = positive.inMinutes;
-    final seconds = positive.inSeconds.remainder(60);
-    return l10n.schedulerCountdown(minutes, seconds);
+    if (state.items.isEmpty) {
+      return EmptyState(message: l10n.emptyState);
+    }
+
+    if (viewMode == PrListViewMode.groupedList) {
+      return ResponsiveContainer(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: _GroupedPrList(prs: state.items),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: _KanbanPrList(prs: state.items),
+    );
   }
 }
 
@@ -129,6 +58,7 @@ class _GroupedPrList extends ConsumerWidget {
       _PrLane.uat,
       _PrLane.preprod,
     ];
+    final envMappingsAsync = ref.watch(envMappingsProvider);
 
     return ListView.builder(
       itemCount: orderedLanes.length,
@@ -141,7 +71,7 @@ class _GroupedPrList extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _laneLabel(l10n, lane),
+                _laneLabel(l10n, lane, envMappingsAsync),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
@@ -162,16 +92,16 @@ class _GroupedPrList extends ConsumerWidget {
   }
 }
 
-class _KanbanPrList extends StatefulWidget {
+class _KanbanPrList extends ConsumerStatefulWidget {
   final List<PullRequest> prs;
 
   const _KanbanPrList({required this.prs});
 
   @override
-  State<_KanbanPrList> createState() => _KanbanPrListState();
+  ConsumerState<_KanbanPrList> createState() => _KanbanPrListState();
 }
 
-class _KanbanPrListState extends State<_KanbanPrList> {
+class _KanbanPrListState extends ConsumerState<_KanbanPrList> {
   final _scrollController = ScrollController();
   late AppLocalizations _l10n;
 
@@ -196,6 +126,7 @@ class _KanbanPrListState extends State<_KanbanPrList> {
       _PrLane.uat,
       _PrLane.preprod,
     ];
+    final envMappingsAsync = ref.watch(envMappingsProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -221,7 +152,7 @@ class _KanbanPrListState extends State<_KanbanPrList> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _laneLabel(_l10n, lane),
+                      _laneLabel(_l10n, lane, envMappingsAsync),
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 12),
@@ -279,9 +210,28 @@ class _PrCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final projects = ref.watch(projectsNotifierProvider).items;
+    final project = projects.where((p) => p.alias == pr.projectAlias).firstOrNull;
+    final color = project?.color;
     return Card(
       child: ListTile(
-        title: Text('${pr.projectAlias} • ${pr.branch}'),
+        title: Row(
+          children: [
+            if (color != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Container(
+                  width: 10, height: 10,
+                  decoration: BoxDecoration(
+                    color: Color(color),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            Flexible(child: Text('${pr.projectAlias} • ${pr.branch}',
+                overflow: TextOverflow.ellipsis)),
+          ],
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -296,14 +246,21 @@ class _PrCard extends ConsumerWidget {
                     color: pr.isTicketClosed ? Colors.green : Colors.orange,
                   ),
                   const SizedBox(width: 4),
-                  Text('${l10n.jiraTicket}: ${pr.jiraTicket}'),
+                  Flexible(
+                    child: Text('${l10n.jiraTicket}: ${pr.jiraTicket}',
+                        overflow: TextOverflow.ellipsis),
+                  ),
                 ],
               ),
-            if (pr.prLink != null) Text('${l10n.prLink}: ${pr.prLink}'),
+            if (pr.prLink != null)
+              Text('${l10n.prLink}: ${pr.prLink}',
+                  overflow: TextOverflow.ellipsis),
             if (pr.providerStatus != null)
-              Text('${l10n.providerStatus}: ${pr.providerStatus}'),
+              Text('${l10n.providerStatus}: ${pr.providerStatus}',
+                  overflow: TextOverflow.ellipsis),
             if (pr.lastCommitSha != null)
-              Text('${l10n.lastCommit}: ${pr.lastCommitSha}'),
+              Text('${l10n.lastCommit}: ${pr.lastCommitSha}',
+                  overflow: TextOverflow.ellipsis),
           ],
         ),
         trailing: Row(
@@ -388,15 +345,33 @@ _PrLane _resolveLane(PullRequest pr) {
   return _PrLane.unreleased;
 }
 
-String _laneLabel(AppLocalizations l10n, _PrLane lane) {
+String _laneLabel(
+  AppLocalizations l10n,
+  _PrLane lane, [
+  AsyncValue<List<EnvironmentMapping>>? envMappingsAsync,
+]) {
+  final List<EnvironmentMapping>? mappings =
+      envMappingsAsync?.valueOrNull;
   switch (lane) {
     case _PrLane.unreleased:
       return l10n.laneUnreleased;
     case _PrLane.develop:
+      if (mappings != null && mappings.isNotEmpty) {
+        final name = mappings[0].environmentName.trim();
+        if (name.isNotEmpty) return name;
+      }
       return l10n.laneDev;
     case _PrLane.uat:
+      if (mappings != null && mappings.length > 1) {
+        final name = mappings[1].environmentName.trim();
+        if (name.isNotEmpty) return name;
+      }
       return l10n.laneUat;
     case _PrLane.preprod:
+      if (mappings != null && mappings.length > 2) {
+        final name = mappings[2].environmentName.trim();
+        if (name.isNotEmpty) return name;
+      }
       return l10n.lanePreprod;
   }
 }

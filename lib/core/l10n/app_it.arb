@@ -62,5 +62,11 @@
   "emptyState": "Nessuna PR",
   "dashboardUnreleased": "Ticket non rilasciati",
   "dashboardUnclosed": "Ticket non chiusi",
-  "tabLogs": "Log"
+  "tabLogs": "Log",
+  "envMappingsTitle": "Mapping ambienti",
+  "envMappingNameLabel": "Nome",
+  "envMappingPatternLabel": "Suffisso branch",
+  "envMappingDefault": "non impostato",
+  "genericError": "Si è verificato un errore",
+  "envSettings": "Ambienti"
 }

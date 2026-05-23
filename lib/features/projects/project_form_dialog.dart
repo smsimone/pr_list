@@ -21,10 +21,17 @@ class ProjectFormDialog extends ConsumerStatefulWidget {
   ConsumerState<ProjectFormDialog> createState() => _ProjectFormDialogState();
 }
 
+const _presetColors = <int>[
+  0xFFE53935, 0xFFFF6D00, 0xFFFDD835, 0xFF43A047,
+  0xFF039BE5, 0xFF5E35B1, 0xFFD81B60, 0xFF00ACC1,
+  0xFF8D6E63, 0xFF78909C, 0xFF000000, 0xFFFFFFFF,
+];
+
 class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _aliasController;
   late TextEditingController _pathController;
+  int? _selectedColor;
   bool _isSaving = false;
   String? _submitError;
   final _logger = Logger('ProjectFormDialog');
@@ -36,6 +43,7 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
       text: widget.existing?.alias ?? widget.initialAlias ?? '',
     );
     _pathController = TextEditingController(text: widget.existing?.path ?? '');
+    _selectedColor = widget.existing?.color;
   }
 
   @override
@@ -95,6 +103,29 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
                     child: Text(l10n.pickFolder),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _presetColors.map((c) {
+                  final selected = _selectedColor == c;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedColor = c),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Color(c),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: selected ? Colors.white : Colors.grey.shade300,
+                          width: selected ? 3 : 1,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
               if (_submitError != null) ...[
                 const SizedBox(height: 12),
@@ -185,11 +216,13 @@ class _ProjectFormDialogState extends ConsumerState<ProjectFormDialog> {
         ? await notifier.addProject(
             alias: _aliasController.text.trim(),
             path: _pathController.text.trim(),
+            color: _selectedColor,
           )
         : await notifier.updateProject(
             id: widget.existing!.id,
             alias: _aliasController.text.trim(),
             path: _pathController.text.trim(),
+            color: _selectedColor,
           );
     if (!mounted) {
       return;

@@ -14,55 +14,47 @@ class ProjectsPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(projectsNotifierProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.tabProjects)),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showDialog(
-          context: context,
-          builder: (_) => const ProjectFormDialog(),
-        ),
-        child: const Icon(Icons.add),
-      ),
-      body: Builder(
-        builder: (context) {
-          if (state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state.items.isEmpty) {
-            return EmptyState(message: l10n.emptyProjects);
-          }
-          return ResponsiveContainer(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: state.items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final project = state.items[index];
-                return Card(
-                  child: ListTile(
-                    title: Text(project.alias),
-                    subtitle: Text(project.path),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => showDialog(
-                            context: context,
-                            builder: (_) =>
-                                ProjectFormDialog(existing: project),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () =>
-                              _confirmDeleteProject(context, ref, project.id),
-                        ),
-                      ],
+    if (state.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state.items.isEmpty) {
+      return EmptyState(message: l10n.emptyProjects);
+    }
+    return ResponsiveContainer(
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: state.items.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final project = state.items[index];
+          return Card(
+            child: ListTile(
+              leading: project.color == null
+                  ? null
+                  : CircleAvatar(
+                      backgroundColor: Color(project.color!),
+                      radius: 14,
+                    ),
+              title: Text(project.alias),
+              subtitle: Text(project.path),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) =>
+                          ProjectFormDialog(existing: project),
                     ),
                   ),
-                );
-              },
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () =>
+                        _confirmDeleteProject(context, ref, project.id),
+                  ),
+                ],
+              ),
             ),
           );
         },

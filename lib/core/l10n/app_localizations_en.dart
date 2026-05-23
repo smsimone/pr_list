@@ -173,4 +173,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tabLogs => 'Logs';
+
+  @override
+  String get envMappingsTitle => 'Environment mappings';
+
+  @override
+  String get envMappingNameLabel => 'Name';
+
+  @override
+  String get envMappingPatternLabel => 'Branch suffix';
+
+  @override
+  String get envMappingDefault => 'not set';
+
+  @override
+  String get genericError => 'An error occurred';
+
+  @override
+  String get envSettings => 'Environments';
 }

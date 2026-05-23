@@ -14,37 +14,34 @@ class DashboardPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final stateAsync = ref.watch(dashboardProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.tabDashboard)),
-      body: stateAsync.when(
-        data: (state) {
-          return ResponsiveContainer(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-                  Expanded(
-                    child: _DashboardColumn(
-                      title: l10n.dashboardUnreleased,
-                      prs: state.notReleased,
-                    ),
+    return stateAsync.when(
+      data: (state) {
+        return ResponsiveContainer(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _DashboardColumn(
+                    title: l10n.dashboardUnreleased,
+                    prs: state.notReleased,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _DashboardColumn(
-                      title: l10n.dashboardUnclosed,
-                      prs: state.notClosed,
-                    ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _DashboardColumn(
+                    title: l10n.dashboardUnclosed,
+                    prs: state.notClosed,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => EmptyState(message: l10n.emptyState),
-      ),
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, _) => EmptyState(message: l10n.emptyState),
     );
   }
 }

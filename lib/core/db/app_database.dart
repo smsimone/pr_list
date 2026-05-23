@@ -38,6 +38,7 @@ class Projects extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get alias => text()();
   TextColumn get path => text()();
+  IntColumn get color => integer().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -47,7 +48,14 @@ class Projects extends Table {
   ];
 }
 
-@DriftDatabase(tables: [PullRequests, SchemaMigrations, Projects])
+class EnvironmentMappings extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get sortOrder => integer()();
+  TextColumn get environmentName => text()();
+  TextColumn get branchPattern => text()();
+}
+
+@DriftDatabase(tables: [PullRequests, SchemaMigrations, Projects, EnvironmentMappings])
 class AppDatabase extends _$AppDatabase {
   final _logger = Logger('AppDatabase');
 
@@ -68,6 +76,16 @@ class AppDatabase extends _$AppDatabase {
       version: 2,
       checksum: '20240522_projects',
       run: (Migrator m) async => m.createTable(projects),
+    ),
+    _MigrationStep(
+      version: 3,
+      checksum: '20250523_project_color',
+      run: (Migrator m) async => m.addColumn(projects, projects.color),
+    ),
+    _MigrationStep(
+      version: 4,
+      checksum: '20250523_environment_mappings',
+      run: (Migrator m) async => m.createTable(environmentMappings),
     ),
   ];
 
