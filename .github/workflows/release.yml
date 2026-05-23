@@ -68,6 +68,7 @@ jobs:
     needs: [check_version, build_macos, build_windows]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
       - run: |
           gh release create "v${{ needs.check_version.outputs.version }}" \
