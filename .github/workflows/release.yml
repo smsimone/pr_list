@@ -1,0 +1,75 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  check_version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract version
+        id: extract
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | sed 's/version: //')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Check existing release
+        run: |
+          gh release view "v${{ steps.extract.outputs.version }}" --json tagName &>/dev/null && \
+            echo "::error::Release v${{ steps.extract.outputs.version }} already exists" && \
+            exit 1 || \
+            echo "No existing release for v${{ steps.extract.outputs.version }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  build_macos:
+    needs: check_version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter build macos --release
+      - name: Package
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r "pr_list-macos-${{ needs.check_version.outputs.version }}.zip" Runner.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: build/macos/Build/Products/Release/pr_list-macos-*.zip
+
+  build_windows:
+    needs: check_version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter build windows --release
+      - name: Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build\windows\runner\Release\* -DestinationPath "pr_list-windows-${{ needs.check_version.outputs.version }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: pr_list-windows-*.zip
+
+  create_release:
+    needs: [check_version, build_macos, build_windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+      - run: |
+          gh release create "v${{ needs.check_version.outputs.version }}" \
+            --title "v${{ needs.check_version.outputs.version }}" \
+            --notes "Automated build from commit ${{ github.sha }}" \
+            macos-build/*.zip windows-build/*.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
