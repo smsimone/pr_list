@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logging/logging.dart';
 import 'package:pr_list/core/db/app_database.dart';
 import 'package:pr_list/core/di/injection_container.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
@@ -19,6 +20,7 @@ class PrFormDialog extends ConsumerStatefulWidget {
 }
 
 class _PrFormDialogState extends ConsumerState<PrFormDialog> {
+  final _logger = Logger('PrFormDialog');
   final _formKey = GlobalKey<FormState>();
   late AppLocalizations _l10n;
   late TextEditingController _projectController;
@@ -34,6 +36,8 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   @override
   void initState() {
     super.initState();
+    final mode = widget.existing == null ? 'create' : 'edit';
+    _logger.info('Dialog opened ($mode) for PR: ${widget.existing?.branch ?? "new"}');
     _projectController = TextEditingController(
       text: widget.existing?.projectAlias ?? '',
     );
@@ -332,6 +336,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
               ? null
               : () async {
                   if (!_formKey.currentState!.validate()) {
+                    _logger.info('Form validation failed, not saving');
                     return;
                   }
                   setState(() {
@@ -346,7 +351,13 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                   final prLink = _linkController.text.trim().isEmpty
                       ? null
                       : _linkController.text.trim();
-                  final result = widget.existing == null
+                  final isNew = widget.existing == null;
+                  _logger.info(
+                    'Saving PR: branch=${_branchController.text.trim()}, '
+                    'project=${_projectController.text.trim()}, '
+                    'link=${_linkController.text.trim()}',
+                  );
+                  final result = isNew
                       ? await notifier.addPr(
                           projectAlias: _projectController.text.trim(),
                           branch: _branchController.text.trim(),
@@ -365,6 +376,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                     return;
                   }
                   if (result.isLeft) {
+                    _logger.warning('Save failed: ${result.left.code} (${result.left.details})');
                     setState(() {
                       _isSaving = false;
                       _submitError = _resolveSubmitError(
@@ -373,6 +385,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                     });
                     return;
                   }
+                  _logger.info('PR saved successfully');
                   Navigator.of(this.context).pop();
                 },
           child: Text(_l10n.save),

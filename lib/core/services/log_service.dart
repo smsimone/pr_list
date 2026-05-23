@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
+import 'package:flutter/services.dart';
 
 class LogService {
   static const _channel = MethodChannel('com.pr_list/log_window');
@@ -12,6 +12,7 @@ class LogService {
   StreamSubscription? _subscription;
 
   void start() {
+    Logger.root.info('LogService started');
     _subscription = Logger.root.onRecord.listen(_onLog);
   }
 
@@ -19,12 +20,16 @@ class LogService {
     _buffer.add(record);
     if (_buffer.length > _maxEntries) _buffer.removeAt(0);
     _controller.add(record);
-    final line =
-        '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}';
-    _channel.invokeMethod('onLog', line);
+    _channel.invokeMethod('onLog', _formatRecord(record));
   }
 
-  void openLogWindow() => _channel.invokeMethod('openLogWindow');
+  void openLogWindow() {
+    final buffer = _buffer.map(_formatRecord).toList();
+    _channel.invokeMethod('openLogWindow', buffer);
+  }
+
+  String _formatRecord(LogRecord r) =>
+      '${r.level.name}: ${r.time}: ${r.loggerName}: ${r.message}';
 
   Stream<LogRecord> get stream => _controller.stream;
   List<LogRecord> get entries => List.unmodifiable(_buffer);

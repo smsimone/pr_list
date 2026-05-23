@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -48,7 +49,11 @@ class Projects extends Table {
 
 @DriftDatabase(tables: [PullRequests, SchemaMigrations, Projects])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  final _logger = Logger('AppDatabase');
+
+  AppDatabase() : super(_openConnection()) {
+    _logger.info('AppDatabase initialized, schemaVersion=$schemaVersion');
+  }
 
   @override
   int get schemaVersion => _migrations.last.version;
@@ -69,10 +74,12 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
+      _logger.info('Creating database from scratch');
       await m.createTable(schemaMigrations);
       await _applyMigrations(m, 0, schemaVersion);
     },
     onUpgrade: (Migrator m, int from, int to) async {
+      _logger.info('Database migration: v$from -> v$to');
       await _applyMigrations(m, from, to);
     },
   );
@@ -80,6 +87,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> _recordMigration(int version, String checksum) async {
     assert(version > 0, 'version must be greater than 0');
     assert(checksum.trim().isNotEmpty, 'checksum must not be empty');
+    _logger.info('Recording migration v$version ($checksum)');
     await into(schemaMigrations).insert(
       SchemaMigrationsCompanion.insert(
         version: version,
@@ -133,6 +141,7 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dir = await getApplicationDocumentsDirectory();
     final file = File(p.join(dir.path, 'pr_list.sqlite'));
+    Logger('AppDatabase').info('Opening database at ${file.path}');
     return NativeDatabase(file);
   });
 }

@@ -63,56 +63,77 @@ class PrSyncService {
 
   Future<void> _syncAll() async {
     if (_isSyncRunning) {
+      _logger.info('PR sync already in progress, skipping');
       return;
     }
     _isSyncRunning = true;
+    final stopwatch = Stopwatch()..start();
+    int ok = 0, errors = 0, skipped = 0;
     try {
       _logger.info('Starting PR sync');
       final result = await _loadPullRequests();
       if (result.isLeft) {
-        _logger.warning('Failed to load PRs');
+        _logger.warning('Failed to load PRs: ${result.left.message}');
         return;
       }
 
-      for (final pr in result.right) {
+      final prs = result.right;
+      _logger.info('Loaded ${prs.length} PR(s) to sync');
+
+      for (final pr in prs) {
+        final prLabel = 'PR #${pr.id} ${pr.branch} @ ${pr.projectAlias}';
         if (pr.prLink == null || pr.prLink!.trim().isEmpty) {
+          _logger.info('$prLabel: no PR link, skipping');
+          skipped++;
           continue;
         }
         final provider = _providerRegistry.match(pr.prLink!);
         if (provider == null) {
+          _logger.warning('$prLabel: no provider supports URL ${pr.prLink}');
+          skipped++;
           continue;
         }
+        _logger.info('$prLabel: matched provider ${provider.name}');
 
         final patResult = await _loadPat();
         if (patResult.isLeft) {
-          _logger.warning('PAT read error');
+          _logger.warning('$prLabel: PAT read error: ${patResult.left.message}');
+          errors++;
           continue;
         }
         final pat = patResult.right;
         if (pat == null || pat.trim().isEmpty) {
-          _logger.warning('PAT missing');
+          _logger.warning('$prLabel: PAT is empty, skipping');
+          errors++;
           continue;
         }
 
-        final syncResult = await _syncProvider(
-          pr,
-          provider,
-          pat,
-        );
+        _logger.info('$prLabel: fetching provider info...');
+        final syncResult = await _syncProvider(pr, provider, pat);
         if (syncResult.isLeft) {
-          _logger.warning('Sync provider failed');
+          _logger.warning('$prLabel: sync failed: ${syncResult.left.message}');
+          errors++;
           continue;
         }
+        _logger.info('$prLabel: provider info updated successfully');
 
         final updatedStatus = await _loadProviderStatus(pr.id);
         if (updatedStatus == 'completed') {
+          _logger.info('$prLabel: status is completed, checking environments...');
           final lastCommit = await _loadLastCommit(pr.id);
           final workingDir = await _resolveWorkingDirectory(pr);
           await _syncEnvironments(pr.id, lastCommit, workingDir);
+        } else {
+          _logger.info('$prLabel: status=$updatedStatus, skipping environment check');
         }
+        ok++;
       }
     } finally {
       _isSyncRunning = false;
+      final elapsed = stopwatch.elapsedMilliseconds;
+      _logger.info(
+        'PR sync finished: $ok OK, $errors errors, $skipped skipped in ${elapsed}ms',
+      );
     }
   }
 
@@ -138,14 +159,20 @@ class PrSyncService {
     GitProvider provider,
     String pat,
   ) async {
+    final prLabel = 'PR #${pr.id}';
+    _logger.info('$prLabel: calling ${provider.name} API...');
     final infoResult = await provider.fetchPullRequestInfo(
       url: pr.prLink!,
       pat: pat,
     );
     if (infoResult.isLeft) {
+      _logger.warning('$prLabel: provider API error: ${infoResult.left.message}');
       return Either.left(infoResult.left);
     }
     final info = infoResult.right;
+    _logger.info(
+      '$prLabel: provider response -> status=${info.status}, commitSha=${info.lastCommitSha}',
+    );
     final updateResult = await _repository.updateProviderInfo(
       id: pr.id,
       provider: info.provider,
@@ -154,6 +181,7 @@ class PrSyncService {
       lastCommitSha: info.lastCommitSha,
     );
     if (updateResult.isLeft) {
+      _logger.warning('$prLabel: DB update failed: ${updateResult.left.message}');
       return Either.left(updateResult.left);
     }
     return const Either.right(null);
@@ -165,18 +193,20 @@ class PrSyncService {
     String? workingDirectory,
   ) async {
     if (lastCommitSha == null || lastCommitSha.trim().isEmpty) {
+      _logger.info('PR #$prId: no commit SHA, skipping environment check');
       return;
     }
     if (workingDirectory == null || workingDirectory.trim().isEmpty) {
-      _logger.warning('Missing working directory for git command');
+      _logger.warning('PR #$prId: missing working directory for git command');
       return;
     }
+    _logger.info('PR #$prId: checking branches containing $lastCommitSha in $workingDirectory');
     final result = await _gitClient.branchesContainingCommit(
       lastCommitSha,
       workingDirectory: workingDirectory,
     );
     if (result.isLeft) {
-      _logger.warning('git branch contains failed');
+      _logger.warning('PR #$prId: git branch-contains failed: ${result.left.message}');
       return;
     }
     final branches = result.right;
@@ -184,6 +214,9 @@ class PrSyncService {
     final isOnUat = branches.any((b) => b.endsWith('/uat'));
     final isOnPreprod = branches.any((b) => b.endsWith('/preprod'));
 
+    _logger.info(
+      'PR #$prId: environment flags -> develop=$isOnDevelop, uat=$isOnUat, preprod=$isOnPreprod (branches: $branches)',
+    );
     await _repository.updateEnvironmentFlags(
       id: prId,
       isOnDevelop: isOnDevelop,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:pr_list/core/services/secure_storage_service.dart';
@@ -11,6 +12,7 @@ class PatSettingsDialog extends StatefulWidget {
 }
 
 class _PatSettingsDialogState extends State<PatSettingsDialog> {
+  final _logger = Logger('PatSettingsDialog');
   final _patController = TextEditingController();
   late AppLocalizations _l10n;
   bool _isSaving = false;
@@ -47,11 +49,14 @@ class _PatSettingsDialogState extends State<PatSettingsDialog> {
               : () async {
                   final value = _patController.text.trim();
                   if (value.isEmpty) {
+                    _logger.warning('Empty PAT, not saving');
                     return;
                   }
+                  _logger.info('Saving PAT...');
                   setState(() => _isSaving = true);
                   final storage = GetIt.instance<SecureStorageService>();
                   await storage.setAzurePat(value);
+                  _logger.info('PAT saved, closing dialog');
                   if (context.mounted) {
                     Navigator.of(context).pop();
                   }

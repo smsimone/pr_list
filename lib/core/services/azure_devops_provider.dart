@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 import 'package:pr_list/core/services/git_provider.dart';
 import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/core/utils/failure.dart';
 
 class AzureDevOpsProvider implements GitProvider {
+  final _logger = Logger('AzureDevOpsProvider');
   @override
   String get name => 'azure_devops';
 
@@ -14,9 +16,12 @@ class AzureDevOpsProvider implements GitProvider {
     assert(url.trim().isNotEmpty, 'url must not be empty');
     final Uri? parsed = Uri.tryParse(url);
     if (parsed == null) {
+      _logger.warning('supportsUrl: invalid URL $url');
       return false;
     }
-    return parsed.host == 'dev.azure.com';
+    final supported = parsed.host == 'dev.azure.com';
+    _logger.info('supportsUrl($url) -> $supported');
+    return supported;
   }
 
   @override
@@ -24,18 +29,23 @@ class AzureDevOpsProvider implements GitProvider {
     assert(url.trim().isNotEmpty, 'url must not be empty');
     final Uri? parsed = Uri.tryParse(url);
     if (parsed == null) {
+      _logger.warning('extractPullRequestId: invalid URL $url');
       return const Either.left(Failure(message: 'Invalid URL'));
     }
     if (parsed.host != 'dev.azure.com') {
+      _logger.warning('extractPullRequestId: unsupported host ${parsed.host} from $url');
       return const Either.left(Failure(message: 'Unsupported host'));
     }
     if (parsed.pathSegments.isEmpty) {
+      _logger.warning('extractPullRequestId: missing path segments in $url');
       return const Either.left(Failure(message: 'Missing path segments'));
     }
     final last = parsed.pathSegments.last;
     if (last.trim().isEmpty) {
+      _logger.warning('extractPullRequestId: empty pull request id in $url');
       return const Either.left(Failure(message: 'Missing pull request id'));
     }
+    _logger.info('extractPullRequestId($url) -> $last');
     return Either.right(last);
   }
 
@@ -70,6 +80,7 @@ class AzureDevOpsProvider implements GitProvider {
     );
 
     final auth = base64Encode(utf8.encode(':$pat'));
+    _logger.info('GET $apiUrl');
     try {
       final response = await http.get(
         apiUrl,
@@ -79,7 +90,10 @@ class AzureDevOpsProvider implements GitProvider {
         },
       );
 
+      _logger.info('Azure response ${response.statusCode} for PR #$pullRequestId');
+
       if (response.statusCode < 200 || response.statusCode >= 300) {
+        _logger.warning('Azure error ${response.statusCode}: ${response.body}');
         return Either.left(
           Failure(
             message: 'Azure response ${response.statusCode}',
@@ -96,7 +110,10 @@ class AzureDevOpsProvider implements GitProvider {
       final lastCommit =
           (lastMergeSourceCommit?['commitId'] as String?) ?? '';
 
+      _logger.info('Parsed PR #$pullRequestId: status=$status, commitId=$lastCommit');
+
       if (lastCommit.isEmpty) {
+        _logger.warning('Missing last merge source commit for PR #$pullRequestId');
         return const Either.left(
           Failure(message: 'Missing last merge source commit'),
         );
@@ -111,6 +128,7 @@ class AzureDevOpsProvider implements GitProvider {
         ),
       );
     } catch (err) {
+      _logger.severe('Azure request failed for PR #$pullRequestId: $err');
       return Either.left(Failure(message: 'Azure request failed', cause: err));
     }
   }

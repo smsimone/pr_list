@@ -12,13 +12,18 @@ import 'package:pr_list/shared/theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _setupLogging();
+  Logger('main').info('App starting...');
   final initResult = await initDependencies();
   if (initResult.isLeft) {
+    Logger('main').severe('Bootstrap failed: ${initResult.left.message}');
     runApp(const _BootstrapErrorApp());
     return;
   }
+  Logger('main').info('Dependencies initialized');
   getIt<LogService>().start();
+  Logger('main').info('LogService started, PrSyncService starting...');
   getIt<PrSyncService>().start();
+  Logger('main').info('App running');
   runApp(const ProviderScope(child: PrListApp()));
 }
 

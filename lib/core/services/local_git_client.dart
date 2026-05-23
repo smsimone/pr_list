@@ -1,10 +1,12 @@
 import 'dart:io';
 
+import 'package:logging/logging.dart';
 import 'package:pr_list/core/services/git_client.dart';
 import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/core/utils/failure.dart';
 
 class LocalGitClient implements GitClient {
+  final _logger = Logger('LocalGitClient');
   @override
   Future<Either<Failure, List<String>>> branchesContainingCommit(
     String commitSha, {
@@ -15,6 +17,7 @@ class LocalGitClient implements GitClient {
       workingDirectory.trim().isNotEmpty,
       'workingDirectory must not be empty',
     );
+    _logger.info('git branch -r --contains $commitSha in $workingDirectory');
     try {
       final result = await Process.run(
         'git',
@@ -23,6 +26,7 @@ class LocalGitClient implements GitClient {
         runInShell: true,
       );
       if (result.exitCode != 0) {
+        _logger.warning('git exit ${result.exitCode}: ${result.stderr}');
         return Either.left(
           Failure(message: 'git command failed', cause: result.stderr),
         );
@@ -33,8 +37,10 @@ class LocalGitClient implements GitClient {
           .map((line) => line.trim())
           .where((line) => line.isNotEmpty)
           .toList();
+      _logger.info('git completed (exit 0): ${branches.length} branch(es)');
       return Either.right(branches);
     } catch (err) {
+      _logger.severe('git command error: $err');
       return Either.left(Failure(message: 'git command error', cause: err));
     }
   }
@@ -50,6 +56,7 @@ class LocalGitClient implements GitClient {
       'workingDirectory must not be empty',
     );
     final branchName = branch.trim();
+    _logger.info('git branch -a --list $branchName in $workingDirectory');
     try {
       final result = await Process.run(
         'git',
@@ -58,6 +65,7 @@ class LocalGitClient implements GitClient {
         runInShell: true,
       );
       if (result.exitCode != 0) {
+        _logger.warning('git exit ${result.exitCode}: ${result.stderr}');
         return Either.left(
           Failure(message: 'git command failed', cause: result.stderr),
         );
@@ -78,8 +86,10 @@ class LocalGitClient implements GitClient {
           normalizedBranches.any(
             (item) => item.endsWith('/$branchName'),
           );
+      _logger.info('git branch-exists($branchName) -> $exists');
       return Either.right(exists);
     } catch (err) {
+      _logger.severe('git command error: $err');
       return Either.left(Failure(message: 'git command error', cause: err));
     }
   }
@@ -92,6 +102,7 @@ class LocalGitClient implements GitClient {
       workingDirectory.trim().isNotEmpty,
       'workingDirectory must not be empty',
     );
+    _logger.info('git remote in $workingDirectory');
     try {
       final result = await Process.run(
         'git',
@@ -100,6 +111,7 @@ class LocalGitClient implements GitClient {
         runInShell: true,
       );
       if (result.exitCode != 0) {
+        _logger.warning('git remote exit ${result.exitCode}: ${result.stderr}');
         return Either.left(
           Failure(message: 'git command failed', cause: result.stderr),
         );
@@ -109,8 +121,10 @@ class LocalGitClient implements GitClient {
           .split('\n')
           .map((line) => line.trim())
           .any((line) => line.isNotEmpty);
+      _logger.info('git remote -> hasRemote=$hasConfiguredRemote');
       return Either.right(hasConfiguredRemote);
     } catch (err) {
+      _logger.severe('git command error: $err');
       return Either.left(Failure(message: 'git command error', cause: err));
     }
   }
@@ -124,8 +138,10 @@ class LocalGitClient implements GitClient {
       workingDirectory.trim().isNotEmpty,
       'workingDirectory must not be empty',
     );
+    _logger.info('listBranches in $workingDirectory (fetch=$fetch)');
     try {
       if (fetch) {
+        _logger.info('git fetch --prune origin in $workingDirectory');
         final fetchResult = await Process.run(
           'git',
           ['fetch', '--prune', 'origin'],
@@ -133,12 +149,15 @@ class LocalGitClient implements GitClient {
           runInShell: true,
         );
         if (fetchResult.exitCode != 0) {
+          _logger.warning('git fetch exit ${fetchResult.exitCode}: ${fetchResult.stderr}');
           return Either.left(
             Failure(message: 'git fetch failed', cause: fetchResult.stderr),
           );
         }
+        _logger.info('git fetch completed (exit 0)');
       }
 
+      _logger.info('git branch -a in $workingDirectory');
       final result = await Process.run(
         'git',
         ['branch', '-a'],
@@ -146,6 +165,7 @@ class LocalGitClient implements GitClient {
         runInShell: true,
       );
       if (result.exitCode != 0) {
+        _logger.warning('git branch -a exit ${result.exitCode}: ${result.stderr}');
         return Either.left(
           Failure(message: 'git branch -a failed', cause: result.stderr),
         );
@@ -158,8 +178,10 @@ class LocalGitClient implements GitClient {
           .where((line) => line.isNotEmpty)
           .toSet()
           .toList();
+      _logger.info('git branch -a -> ${branches.length} branch(es)');
       return Either.right(branches);
     } catch (err) {
+      _logger.severe('git command error: $err');
       return Either.left(Failure(message: 'git command error', cause: err));
     }
   }

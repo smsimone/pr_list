@@ -6,6 +6,7 @@ class LogWindowManager: NSObject {
 
   private var window: NSWindow?
   private var textView: NSTextView?
+  private var hasOpened = false
 
   func setup(controller: FlutterViewController) {
     let channel = FlutterMethodChannel(
@@ -15,7 +16,8 @@ class LogWindowManager: NSObject {
     channel.setMethodCallHandler { [weak self] call, result in
       switch call.method {
       case "openLogWindow":
-        self?.openWindow()
+        let buffer = call.arguments as? [String] ?? []
+        self?.openWindow(initialBuffer: buffer)
       case "onLog":
         if let entry = call.arguments as? String {
           self?.appendLog(entry)
@@ -28,7 +30,7 @@ class LogWindowManager: NSObject {
     }
   }
 
-  private func openWindow() {
+  private func openWindow(initialBuffer: [String]) {
     if let existing = window, existing.isVisible {
       existing.makeKeyAndOrderFront(nil)
       return
@@ -46,6 +48,7 @@ class LogWindowManager: NSObject {
     tv.autoresizingMask = [.width, .height]
     scrollView.documentView = tv
     textView = tv
+    hasOpened = false
 
     let win = NSWindow(
       contentRect: NSRect(x: 0, y: 0, width: 800, height: 500),
@@ -58,6 +61,14 @@ class LogWindowManager: NSObject {
     win.contentView = scrollView
     win.makeKeyAndOrderFront(nil)
     window = win
+
+    // Populate with initial buffer
+    let full = initialBuffer.joined(separator: "\n")
+    if !full.isEmpty {
+      tv.string = full + "\n"
+      tv.scrollToEndOfDocument(nil)
+    }
+    hasOpened = true
   }
 
   private func appendLog(_ entry: String) {
