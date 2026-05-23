@@ -6,7 +6,6 @@ class LogWindowManager: NSObject {
 
   private var window: NSWindow?
   private var textView: NSTextView?
-  private var hasOpened = false
 
   func setup(controller: FlutterViewController) {
     let channel = FlutterMethodChannel(
@@ -31,8 +30,12 @@ class LogWindowManager: NSObject {
   }
 
   private func openWindow(initialBuffer: [String]) {
-    if let existing = window, existing.isVisible {
-      existing.makeKeyAndOrderFront(nil)
+    if let win = window {
+      if win.isVisible {
+        win.makeKeyAndOrderFront(nil)
+        return
+      }
+      win.makeKeyAndOrderFront(nil)
       return
     }
 
@@ -48,7 +51,6 @@ class LogWindowManager: NSObject {
     tv.autoresizingMask = [.width, .height]
     scrollView.documentView = tv
     textView = tv
-    hasOpened = false
 
     let win = NSWindow(
       contentRect: NSRect(x: 0, y: 0, width: 800, height: 500),
@@ -56,23 +58,23 @@ class LogWindowManager: NSObject {
       backing: .buffered,
       defer: false
     )
+    win.isReleasedWhenClosed = false
     win.title = "Logs"
     win.center()
     win.contentView = scrollView
-    win.makeKeyAndOrderFront(nil)
     window = win
 
-    // Populate with initial buffer
     let full = initialBuffer.joined(separator: "\n")
     if !full.isEmpty {
       tv.string = full + "\n"
       tv.scrollToEndOfDocument(nil)
     }
-    hasOpened = true
+
+    win.makeKeyAndOrderFront(nil)
   }
 
   private func appendLog(_ entry: String) {
-    guard let tv = textView else { return }
+    guard let tv = textView, let win = window, win.isVisible else { return }
     DispatchQueue.main.async {
       let attrs: [NSAttributedString.Key: Any] = [
         .font: NSFont(name: "Menlo", size: 11) ?? NSFont.systemFont(ofSize: 11),
