@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pr_list/core/db/app_database.dart';
+import 'package:pr_list/core/di/injection_container.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
+import 'package:pr_list/core/services/log_service.dart';
 import 'package:pr_list/features/pr_list/pr_form_dialog.dart';
 import 'package:pr_list/features/pr_list/pr_list_providers.dart';
 import 'package:pr_list/features/settings/pat_settings_dialog.dart';
@@ -60,6 +62,11 @@ class PrListPage extends ConsumerWidget {
               builder: (_) => const PatSettingsDialog(),
             ),
             icon: const Icon(Icons.vpn_key),
+          ),
+          IconButton(
+            tooltip: l10n.tabLogs,
+            onPressed: () => getIt<LogService>().openLogWindow(),
+            icon: const Icon(Icons.terminal),
           ),
         ],
       ),

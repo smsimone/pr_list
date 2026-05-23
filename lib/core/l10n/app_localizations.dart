@@ -415,6 +415,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tickets not closed'**
   String get dashboardUnclosed;
+
+  /// No description provided for @tabLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs'**
+  String get tabLogs;
 }
 
 class _AppLocalizationsDelegate

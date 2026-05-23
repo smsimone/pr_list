@@ -7,6 +7,7 @@ import 'package:pr_list/core/services/branch_cache_service.dart';
 import 'package:pr_list/core/services/git_client.dart';
 import 'package:pr_list/core/services/git_provider.dart';
 import 'package:pr_list/core/services/local_git_client.dart';
+import 'package:pr_list/core/services/log_service.dart';
 import 'package:pr_list/core/services/pr_repository.dart';
 import 'package:pr_list/core/services/pr_sync_service.dart';
 import 'package:pr_list/core/services/provider_registry.dart';
@@ -52,6 +53,8 @@ Future<Either<Failure, void>> initDependencies() async {
         getIt<Logger>(),
       ),
     );
+
+    getIt.registerLazySingleton<LogService>(LogService.new);
 
     return const Either.right(null);
   } catch (err) {

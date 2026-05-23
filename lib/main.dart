@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:pr_list/core/di/injection_container.dart';
 import 'package:pr_list/core/router/app_router.dart';
+import 'package:pr_list/core/services/log_service.dart';
 import 'package:pr_list/core/services/pr_sync_service.dart';
 import 'package:pr_list/shared/theme/app_theme.dart';
 
@@ -16,8 +17,8 @@ Future<void> main() async {
     runApp(const _BootstrapErrorApp());
     return;
   }
-  final syncService = getIt<PrSyncService>();
-  syncService.start();
+  getIt<LogService>().start();
+  getIt<PrSyncService>().start();
   runApp(const ProviderScope(child: PrListApp()));
 }
 

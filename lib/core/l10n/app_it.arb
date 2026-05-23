@@ -61,5 +61,6 @@
   "emptyProjects": "Nessun progetto",
   "emptyState": "Nessuna PR",
   "dashboardUnreleased": "Ticket non rilasciati",
-  "dashboardUnclosed": "Ticket non chiusi"
+  "dashboardUnclosed": "Ticket non chiusi",
+  "tabLogs": "Log"
 }

@@ -172,4 +172,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get dashboardUnclosed => 'Ticket non chiusi';
+
+  @override
+  String get tabLogs => 'Log';
 }
