@@ -17,6 +17,10 @@ class LogWindowManager {
   static LogWindowManager& GetInstance();
 
   void Setup(flutter::BinaryMessenger* messenger);
+  static LRESULT CALLBACK WndProc(HWND hwnd,
+                                  UINT message,
+                                  WPARAM wparam,
+                                  LPARAM lparam);
 
  private:
   LogWindowManager() = default;
@@ -27,10 +31,6 @@ class LogWindowManager {
 
   void CreateEditControl();
   void SendInitialBuffer(const std::vector<std::string>& initial_buffer);
-  static LRESULT CALLBACK WndProc(HWND hwnd,
-                                  UINT message,
-                                  WPARAM wparam,
-                                  LPARAM lparam);
 
   HWND log_window_ = nullptr;
   HWND edit_control_ = nullptr;

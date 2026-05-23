@@ -148,7 +148,9 @@ void LogWindowManager::SendInitialBuffer(
   SetWindowText(edit_control_, text.c_str());
 
   int nChars = GetWindowTextLength(edit_control_);
-  SendMessage(edit_control_, EM_SETSEL, nChars, nChars);
+  SendMessage(edit_control_, EM_SETSEL,
+              static_cast<WPARAM>(nChars),
+              static_cast<LPARAM>(nChars));
   SendMessage(edit_control_, EM_SCROLLCARET, 0, 0);
 }
 
@@ -174,7 +176,9 @@ void LogWindowManager::AppendLog(const std::string& entry) {
               reinterpret_cast<LPARAM>(wentry.c_str()));
 
   int nChars = GetWindowTextLength(edit_control_);
-  SendMessage(edit_control_, EM_SETSEL, nChars, nChars);
+  SendMessage(edit_control_, EM_SETSEL,
+              static_cast<WPARAM>(nChars),
+              static_cast<LPARAM>(nChars));
   SendMessage(edit_control_, EM_SCROLLCARET, 0, 0);
 }
 
