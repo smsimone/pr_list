@@ -1,5 +1,6 @@
 #include "log_window.h"
 
+#include <limits>
 #include <sstream>
 
 namespace {
@@ -171,8 +172,11 @@ void LogWindowManager::AppendLog(const std::string& entry) {
                       len);
   wentry += L"\r\n";
 
-  SendMessage(edit_control_, EM_SETSEL, -1, -1);
-  SendMessage(edit_control_, EM_REPLACESEL, FALSE,
+  constexpr WPARAM kSelectEnd = std::numeric_limits<WPARAM>::max();
+  SendMessage(edit_control_, EM_SETSEL, kSelectEnd,
+              static_cast<LPARAM>(-1));
+  SendMessage(edit_control_, EM_REPLACESEL,
+              static_cast<WPARAM>(FALSE),
               reinterpret_cast<LPARAM>(wentry.c_str()));
 
   int nChars = GetWindowTextLength(edit_control_);
