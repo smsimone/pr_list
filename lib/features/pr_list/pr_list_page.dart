@@ -77,13 +77,18 @@ class PrListPage extends ConsumerWidget {
             return EmptyState(message: l10n.emptyState);
           }
 
-          return ResponsiveContainer(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: viewMode == PrListViewMode.groupedList
-                  ? _GroupedPrList(prs: state.items)
-                  : _KanbanPrList(prs: state.items),
-            ),
+          if (viewMode == PrListViewMode.groupedList) {
+            return ResponsiveContainer(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: _GroupedPrList(prs: state.items),
+              ),
+            );
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: _KanbanPrList(prs: state.items),
           );
         },
       ),
@@ -150,15 +155,28 @@ class _GroupedPrList extends ConsumerWidget {
   }
 }
 
-class _KanbanPrList extends ConsumerWidget {
+class _KanbanPrList extends StatefulWidget {
   final List<PullRequest> prs;
 
   const _KanbanPrList({required this.prs});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  State<_KanbanPrList> createState() => _KanbanPrListState();
+}
+
+class _KanbanPrListState extends State<_KanbanPrList> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final Map<_PrLane, List<PullRequest>> grouped = _groupByLane(prs);
+    final Map<_PrLane, List<PullRequest>> grouped = _groupByLane(widget.prs);
     final List<_PrLane> lanes = <_PrLane>[
       _PrLane.unreleased,
       _PrLane.develop,
@@ -166,15 +184,23 @@ class _KanbanPrList extends ConsumerWidget {
       _PrLane.preprod,
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: lanes.map((lane) {
-          final List<PullRequest> laneItems = grouped[lane] ?? <PullRequest>[];
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        const double gap = 12;
+        final int laneCount = lanes.length;
+        final double totalGaps = gap * (laneCount - 1);
+        final double idealWidth =
+            (constraints.maxWidth - totalGaps) / laneCount;
+        final double laneWidth = idealWidth.clamp(240, 350);
+
+        final double totalWidth = laneWidth * laneCount + totalGaps;
+
+        final List<Widget> columns = lanes.map((lane) {
+          final List<PullRequest> laneItems =
+              grouped[lane] ?? <PullRequest>[];
           return Container(
-            width: 280,
-            margin: const EdgeInsets.only(right: 12),
+            width: laneWidth,
+            margin: EdgeInsets.only(right: lane == lanes.last ? 0 : gap),
             child: Card(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -191,10 +217,12 @@ class _KanbanPrList extends ConsumerWidget {
                           ? Text(l10n.emptyState)
                           : ListView.builder(
                               itemCount: laneItems.length,
-                              itemBuilder: (BuildContext context, int index) {
+                              itemBuilder:
+                                  (BuildContext context, int index) {
                                 final PullRequest pr = laneItems[index];
                                 return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
+                                  padding:
+                                      const EdgeInsets.only(bottom: 8),
                                   child: _PrCard(pr: pr),
                                 );
                               },
@@ -205,8 +233,27 @@ class _KanbanPrList extends ConsumerWidget {
               ),
             ),
           );
-        }).toList(),
-      ),
+        }).toList();
+
+        final Widget row = Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: columns,
+        );
+
+        if (totalWidth > constraints.maxWidth) {
+          return Scrollbar(
+            thumbVisibility: true,
+            controller: _scrollController,
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              child: row,
+            ),
+          );
+        }
+
+        return row;
+      },
     );
   }
 }
