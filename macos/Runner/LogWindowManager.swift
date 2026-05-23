@@ -74,7 +74,10 @@ class LogWindowManager: NSObject {
   private func appendLog(_ entry: String) {
     guard let tv = textView else { return }
     DispatchQueue.main.async {
-      tv.textStorage?.append(NSAttributedString(string: entry + "\n"))
+      let attrs: [NSAttributedString.Key: Any] = [
+        .font: NSFont(name: "Menlo", size: 11) ?? NSFont.systemFont(ofSize: 11),
+      ]
+      tv.textStorage?.append(NSAttributedString(string: entry + "\n", attributes: attrs))
       tv.scrollToEndOfDocument(nil)
     }
   }
