@@ -32,6 +32,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   String? _submitError;
   List<String> _branches = [];
   bool _branchesLoading = false;
+  bool _projectSelected = false;
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     _ticketController.addListener(_onTicketChanged);
 
     if (widget.existing != null) {
+      _projectSelected = true;
       _loadBranches(widget.existing!.projectAlias);
     }
   }
@@ -72,13 +74,6 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     _ticketController.dispose();
     _linkController.dispose();
     super.dispose();
-  }
-
-  void _onBranchChanged(String value) {
-    if (value.startsWith('fix/NFSN-') &&
-        _ticketController.text.trim().isEmpty) {
-      _ticketController.text = 'NFSN-****';
-    }
   }
 
   void _onTicketChanged() {
@@ -104,7 +99,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
 
     setState(() {
       if (result.isRight) {
-        _branches = result.right;
+        _branches = _deduplicateBranches(result.right);
       }
       _branchesLoading = false;
     });
@@ -121,12 +116,36 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     return null;
   }
 
+  List<String> _deduplicateBranches(List<String> branches) {
+    final seen = <String>{};
+    final result = <String>[];
+    for (final branch in branches) {
+      final normalized = branch.startsWith('origin/')
+          ? branch.substring(7)
+          : branch;
+      if (seen.add(normalized)) {
+        result.add(normalized);
+      }
+    }
+    return result;
+  }
+
   String? _validatePrLink(String? value) {
     final link = value?.trim() ?? '';
     if (link.isEmpty) {
       return null;
     }
     final Uri? uri = Uri.tryParse(link);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+      return _l10n.validationInvalidPrUrl;
+    }
+    return null;
+  }
+
+  String? _validateTicket(String? value) {
+    final ticket = value?.trim() ?? '';
+    if (ticket.isEmpty) return null;
+    final uri = Uri.tryParse(ticket);
     if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
       return _l10n.validationInvalidPrUrl;
     }
@@ -183,6 +202,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                       },
                       onSelected: (value) {
                         _projectController.text = value;
+                        setState(() => _projectSelected = true);
                         _loadBranches(value);
                       },
                       fieldViewBuilder:
@@ -208,6 +228,9 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                                   : null,
                               onChanged: (value) {
                                 _projectController.text = value;
+                                if (_projectSelected) {
+                                  setState(() => _projectSelected = false);
+                                }
                               },
                             );
                           },
@@ -246,7 +269,6 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                 },
                 onSelected: (value) {
                   _branchController.text = value;
-                  _onBranchChanged(value);
                 },
                 fieldViewBuilder:
                     (
@@ -259,8 +281,19 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                     textController.text = _branchController.text;
                   }
                   return TextFormField(
+                    enabled: _projectSelected,
                     controller: textController,
                     focusNode: focusNode,
+                    onTap: () {
+                      if (_branches.isNotEmpty) {
+                        textController.value = TextEditingValue(
+                          text: textController.text,
+                          selection: TextSelection.collapsed(
+                            offset: textController.text.length,
+                          ),
+                        );
+                      }
+                    },
                     decoration: InputDecoration(
                       labelText: _l10n.branch,
                       suffixIcon: _branchesLoading
@@ -285,8 +318,10 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
               ),
               const SizedBox(height: 12),
               TextFormField(
+                enabled: _projectSelected,
                 controller: _ticketController,
                 decoration: InputDecoration(labelText: _l10n.jiraTicket),
+                validator: (value) => _validateTicket(value),
                 onChanged: (_) {
                   if (_submitError != null) {
                     setState(() => _submitError = null);
@@ -295,6 +330,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
               ),
               const SizedBox(height: 12),
               TextFormField(
+                enabled: _projectSelected,
                 controller: _linkController,
                 decoration: InputDecoration(labelText: _l10n.prLink),
                 validator: (value) => _validatePrLink(value),
@@ -302,7 +338,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
               const SizedBox(height: 12),
               CheckboxListTile(
                 value: _ticketClosed,
-                onChanged: _ticketController.text.trim().isEmpty
+                onChanged: _ticketController.text.trim().isEmpty || !_projectSelected
                     ? null
                     : (value) {
                         setState(() => _ticketClosed = value ?? false);

@@ -245,7 +245,7 @@ abstract class AppLocalizations {
   /// No description provided for @jiraTicket.
   ///
   /// In en, this message translates to:
-  /// **'Jira ticket'**
+  /// **'Ticket link'**
   String get jiraTicket;
 
   /// No description provided for @prLink.

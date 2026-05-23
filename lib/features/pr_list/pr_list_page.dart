@@ -286,7 +286,19 @@ class _PrCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (pr.jiraTicket != null)
-              Text('${l10n.jiraTicket}: ${pr.jiraTicket}'),
+              Row(
+                children: [
+                  Icon(
+                    pr.isTicketClosed
+                        ? Icons.check_circle
+                        : Icons.circle_outlined,
+                    size: 16,
+                    color: pr.isTicketClosed ? Colors.green : Colors.orange,
+                  ),
+                  const SizedBox(width: 4),
+                  Text('${l10n.jiraTicket}: ${pr.jiraTicket}'),
+                ],
+              ),
             if (pr.prLink != null) Text('${l10n.prLink}: ${pr.prLink}'),
             if (pr.providerStatus != null)
               Text('${l10n.providerStatus}: ${pr.providerStatus}'),

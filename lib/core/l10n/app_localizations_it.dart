@@ -84,7 +84,7 @@ class AppLocalizationsIt extends AppLocalizations {
       'Branch non presente nella repository del progetto';
 
   @override
-  String get jiraTicket => 'Ticket Jira';
+  String get jiraTicket => 'Ticket link';
 
   @override
   String get prLink => 'Link PR';

@@ -23,7 +23,7 @@
   "validationBranchRequired": "Branch is required",
   "validationBranchNoSpaces": "Branch cannot contain spaces",
   "validationBranchNotFound": "Branch does not exist in project repository",
-  "jiraTicket": "Jira ticket",
+  "jiraTicket": "Ticket link",
   "prLink": "PR link",
   "validationInvalidPrUrl": "Invalid PR URL",
   "ticketClosed": "Ticket closed",

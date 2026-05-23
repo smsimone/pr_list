@@ -23,7 +23,7 @@
   "validationBranchRequired": "Branch obbligatorio",
   "validationBranchNoSpaces": "Il branch non può contenere spazi",
   "validationBranchNotFound": "Branch non presente nella repository del progetto",
-  "jiraTicket": "Ticket Jira",
+  "jiraTicket": "Ticket link",
   "prLink": "Link PR",
   "validationInvalidPrUrl": "URL PR non valido",
   "ticketClosed": "Ticket chiuso",
