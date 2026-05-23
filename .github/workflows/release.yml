@@ -40,7 +40,7 @@ jobs:
       - name: Package
         run: |
           cd build/macos/Build/Products/Release
-          zip -r "pr_list-macos-${{ needs.check_version.outputs.version }}.zip" Runner.app
+          zip -r "pr_list-macos-${{ needs.check_version.outputs.version }}.zip" pr_list.app
       - uses: actions/upload-artifact@v4
         with:
           name: macos-build
@@ -58,7 +58,7 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          Compress-Archive -Path build\windows\runner\Release\* -DestinationPath "pr_list-windows-${{ needs.check_version.outputs.version }}.zip"
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "pr_list-windows-${{ needs.check_version.outputs.version }}.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: windows-build
