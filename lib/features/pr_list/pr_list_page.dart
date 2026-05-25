@@ -6,6 +6,7 @@ import 'package:pr_list/features/pr_list/pr_form_dialog.dart';
 import 'package:pr_list/features/pr_list/pr_list_providers.dart';
 import 'package:pr_list/features/projects/projects_providers.dart';
 import 'package:pr_list/features/settings/env_mapping_providers.dart';
+import 'package:pr_list/shared/utils/ticket_utils.dart';
 import 'package:pr_list/shared/widgets/empty_state.dart';
 import 'package:pr_list/shared/widgets/responsive_container.dart';
 
@@ -145,7 +146,7 @@ class _KanbanPrListState extends ConsumerState<_KanbanPrList> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _laneLabel(_l10n, lane, mappings),
+                      '${_laneLabel(_l10n, lane, mappings)} (${laneItems.length})',
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 12),
@@ -159,7 +160,7 @@ class _KanbanPrListState extends ConsumerState<_KanbanPrList> {
                                 return Padding(
                                   padding:
                                       const EdgeInsets.only(bottom: 8),
-                                  child: _PrCard(pr: pr),
+                                  child: _KanbanPrCard(pr: pr),
                                 );
                               },
                             ),
@@ -190,6 +191,66 @@ class _KanbanPrListState extends ConsumerState<_KanbanPrList> {
 
         return row;
       },
+    );
+  }
+}
+
+class _KanbanPrCard extends ConsumerWidget {
+  final PullRequest pr;
+
+  const _KanbanPrCard({required this.pr});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final projects = ref.watch(projectsNotifierProvider).items;
+    final project = projects.where((p) => p.alias == pr.projectAlias).firstOrNull;
+    final color = project?.color;
+    return GestureDetector(
+      onTap: () => showDialog(
+        context: context,
+        builder: (_) => PrFormDialog(existing: pr),
+      ),
+      child: Card(
+        color: color == null ? null : Color(color).withValues(alpha: 0.15),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    pr.isTicketClosed
+                        ? Icons.check_circle
+                        : Icons.circle_outlined,
+                    size: 16,
+                    color: pr.isTicketClosed ? Colors.green : Colors.orange,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      ticketCardTitle(pr),
+                      style: Theme.of(context).textTheme.titleSmall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              if (pr.providerStatus != null &&
+                  pr.providerStatus!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  pr.providerStatus!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

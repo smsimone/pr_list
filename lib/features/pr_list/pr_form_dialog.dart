@@ -7,6 +7,8 @@ import 'package:pr_list/features/pr_list/pr_list_providers.dart';
 import 'package:pr_list/features/pr_list/pr_list_notifier.dart';
 import 'package:pr_list/features/projects/project_form_dialog.dart';
 import 'package:pr_list/features/projects/projects_providers.dart';
+import 'package:pr_list/shared/utils/ticket_utils.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PrFormDialog extends ConsumerStatefulWidget {
   final PullRequest? existing;
@@ -103,6 +105,50 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     }
   }
 
+  Widget? _buildUrlSuffix(String? text) {
+    if (!isValidUrl(text)) return null;
+    return IconButton(
+      icon: const Icon(Icons.open_in_new, size: 18),
+      onPressed: () => launchUrl(Uri.parse(text!.trim())),
+    );
+  }
+
+  Future<void> _confirmDelete() async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(_l10n.deletePrTitle),
+        content: Text(_l10n.deletePrMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(_l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(_l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (shouldDelete != true || !mounted) {
+      return;
+    }
+    final result = await ref
+        .read(prListNotifierProvider.notifier)
+        .deletePr(widget.existing!.id);
+    if (!mounted) {
+      return;
+    }
+    if (result.isLeft) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_l10n.genericDeleteError)),
+      );
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final projectsState = ref.watch(projectsNotifierProvider);
@@ -190,20 +236,25 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
               TextFormField(
                 enabled: _projectSelected,
                 controller: _ticketController,
-                decoration: InputDecoration(labelText: _l10n.jiraTicket),
+                decoration: InputDecoration(
+                  labelText: _l10n.jiraTicket,
+                  suffixIcon: _buildUrlSuffix(_ticketController.text),
+                ),
                 validator: (value) => _validateTicket(value),
-                onChanged: (_) {
-                  if (_submitError != null) {
-                    setState(() => _submitError = null);
-                  }
-                },
+                onChanged: (_) => setState(() {
+                  if (_submitError != null) _submitError = null;
+                }),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 enabled: _projectSelected,
                 controller: _linkController,
-                decoration: InputDecoration(labelText: _l10n.prLink),
+                decoration: InputDecoration(
+                  labelText: _l10n.prLink,
+                  suffixIcon: _buildUrlSuffix(_linkController.text),
+                ),
                 validator: (value) => _validatePrLink(value),
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 12),
               CheckboxListTile(
@@ -243,64 +294,78 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
           ),
         ),
       ),
+      actionsAlignment: widget.existing != null
+          ? MainAxisAlignment.spaceBetween
+          : MainAxisAlignment.end,
       actions: [
-        TextButton(
-          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: Text(_l10n.cancel),
-        ),
-        FilledButton(
-          onPressed: _isSaving
-              ? null
-              : () async {
-                  if (!_formKey.currentState!.validate()) {
-                    _logger.info('Form validation failed, not saving');
-                    return;
-                  }
-                  setState(() {
-                    _isSaving = true;
-                    _submitError = null;
-                  });
-                  final notifier = ref.read(prListNotifierProvider.notifier);
-                  final jiraTicket =
-                      _ticketController.text.trim().isEmpty
-                      ? null
-                      : _ticketController.text.trim();
-                  final prLink = _linkController.text.trim().isEmpty
-                      ? null
-                      : _linkController.text.trim();
-                  final isNew = widget.existing == null;
-                  _logger.info(
-                    'Saving PR: project=${_projectController.text.trim()}, '
-                    'link=${_linkController.text.trim()}',
-                  );
-                  final result = isNew
-                      ? await notifier.addPr(
-                          projectAlias: _projectController.text.trim(),
-                          jiraTicket: jiraTicket,
-                          prLink: prLink,
-                        )
-                      : await notifier.updatePr(
-                          id: widget.existing!.id,
-                          projectAlias: _projectController.text.trim(),
-                          jiraTicket: jiraTicket,
-                          prLink: prLink,
-                          isTicketClosed: _ticketClosed,
-                        );
-                  if (!mounted) {
-                    return;
-                  }
-                  if (result.isLeft) {
-                    _logger.warning('Save failed: ${result.left.code} (${result.left.details})');
-                    setState(() {
-                      _isSaving = false;
-                      _submitError = _resolveSubmitError(result.left);
-                    });
-                    return;
-                  }
-                  _logger.info('PR saved successfully');
-                  Navigator.of(this.context).pop();
-                },
-          child: Text(_l10n.save),
+        if (widget.existing != null)
+          TextButton(
+            onPressed: _isSaving ? null : _confirmDelete,
+            child: Text(_l10n.delete),
+          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton(
+              onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+              child: Text(_l10n.cancel),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: _isSaving
+                  ? null
+                  : () async {
+                      if (!_formKey.currentState!.validate()) {
+                        _logger.info('Form validation failed, not saving');
+                        return;
+                      }
+                      setState(() {
+                        _isSaving = true;
+                        _submitError = null;
+                      });
+                      final notifier = ref.read(prListNotifierProvider.notifier);
+                      final jiraTicket =
+                          _ticketController.text.trim().isEmpty
+                          ? null
+                          : _ticketController.text.trim();
+                      final prLink = _linkController.text.trim().isEmpty
+                          ? null
+                          : _linkController.text.trim();
+                      final isNew = widget.existing == null;
+                      _logger.info(
+                        'Saving PR: project=${_projectController.text.trim()}, '
+                        'link=${_linkController.text.trim()}',
+                      );
+                      final result = isNew
+                          ? await notifier.addPr(
+                              projectAlias: _projectController.text.trim(),
+                              jiraTicket: jiraTicket,
+                              prLink: prLink,
+                            )
+                          : await notifier.updatePr(
+                              id: widget.existing!.id,
+                              projectAlias: _projectController.text.trim(),
+                              jiraTicket: jiraTicket,
+                              prLink: prLink,
+                              isTicketClosed: _ticketClosed,
+                            );
+                      if (!mounted) {
+                        return;
+                      }
+                      if (result.isLeft) {
+                        _logger.warning('Save failed: ${result.left.code} (${result.left.details})');
+                        setState(() {
+                          _isSaving = false;
+                          _submitError = _resolveSubmitError(result.left);
+                        });
+                        return;
+                      }
+                      _logger.info('PR saved successfully');
+                      Navigator.of(this.context).pop();
+                    },
+              child: Text(_l10n.save),
+            ),
+          ],
         ),
       ],
     );

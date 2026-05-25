@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pr_list/features/pr_list/pr_list_providers.dart';
 import 'package:pr_list/features/projects/project_form_dialog.dart';
 import 'package:pr_list/features/projects/projects_providers.dart';
 import 'package:pr_list/shared/widgets/empty_state.dart';
@@ -27,14 +28,36 @@ class ProjectsPage extends ConsumerWidget {
         separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final project = state.items[index];
+          final prState = ref.watch(prListNotifierProvider);
+          final prCount = prState.items
+              .where((pr) => pr.projectAlias == project.alias)
+              .length;
+
+          Color textColor = Colors.white;
+          Color? prjColor;
+          if (project.color != null) {
+            prjColor = Color(project.color!);
+            if (prjColor.computeLuminance() > 0.4) {
+              textColor = Colors.black;
+            }
+          }
+
           return Card(
             child: ListTile(
-              leading: project.color == null
-                  ? null
-                  : CircleAvatar(
-                      backgroundColor: Color(project.color!),
-                      radius: 14,
+              leading: Stack(
+                alignment: AlignmentDirectional.center,
+                children: [
+                  if (prjColor != null)
+                    CircleAvatar(backgroundColor: prjColor, radius: 14),
+                  Text(
+                    '$prCount',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
                     ),
+                  ),
+                ],
+              ),
               title: Text(project.alias),
               subtitle: Text(project.path),
               trailing: Row(
@@ -44,8 +67,7 @@ class ProjectsPage extends ConsumerWidget {
                     icon: const Icon(Icons.edit),
                     onPressed: () => showDialog(
                       context: context,
-                      builder: (_) =>
-                          ProjectFormDialog(existing: project),
+                      builder: (_) => ProjectFormDialog(existing: project),
                     ),
                   ),
                   IconButton(
