@@ -214,85 +214,92 @@ class _KanbanPrCard extends ConsumerWidget {
         builder: (_) => PrFormDialog(existing: pr),
       ),
       child: Card(
-        color: color == null ? null : Color(color).withValues(alpha: 0.15),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (color != null)
+              Container(height: 5, color: Color(color)),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    isDuplicate
-                        ? Icons.warning_amber
-                        : (pr.isTicketClosed
-                              ? Icons.check_circle
-                              : Icons.circle_outlined),
-                    size: 16,
-                    color: isDuplicate
-                        ? Colors.amber
-                        : (pr.isTicketClosed ? Colors.green : Colors.orange),
+                  Row(
+                    children: [
+                      Icon(
+                        isDuplicate
+                            ? Icons.warning_amber
+                            : (pr.isTicketClosed
+                                  ? Icons.check_circle
+                                  : Icons.circle_outlined),
+                        size: 16,
+                        color: isDuplicate
+                            ? Colors.amber
+                            : (pr.isTicketClosed ? Colors.green : Colors.orange),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          ticketCardTitle(pr),
+                          style: Theme.of(context).textTheme.titleSmall,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      ticketCardTitle(pr),
-                      style: Theme.of(context).textTheme.titleSmall,
+                  if (pr.providerStatus != null &&
+                      pr.providerStatus!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: "PR Status: ",
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextSpan(
+                            text: pr.providerStatus!,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
+                  ],
+                  if (pr.ticketStatus != null &&
+                      pr.ticketStatus!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: "Ticket status: ",
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextSpan(
+                            text: pr.ticketStatus!,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
               ),
-              if (pr.providerStatus != null &&
-                  pr.providerStatus!.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: "PR Status: ",
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      TextSpan(
-                        text: pr.providerStatus!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-              if (pr.ticketStatus != null &&
-                  pr.ticketStatus!.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: "Ticket status: ",
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      TextSpan(
-                        text: pr.ticketStatus!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
