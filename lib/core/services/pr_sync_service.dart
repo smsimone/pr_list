@@ -237,11 +237,20 @@ class PrSyncService {
     } else {
       mappings = envResult.right;
     }
-
-    final matchedIds = _resolveMatchedMappingIds(branches, mappings);
     _logger.info(
-      'PR #$prId: matched env mapping ids: $matchedIds (branches: $branches)',
+      'PR #$prId: loaded ${mappings.length} env mapping(s)',
     );
+    if (mappings.isNotEmpty) {
+      for (final m in mappings) {
+        _logger.info(
+          '  env#${m.id}: name="${m.environmentName}", pattern="$m.branchPattern"',
+        );
+      }
+    }
+
+    _logger.info('PR #$prId: branches: $branches');
+    final matchedIds = _resolveMatchedMappingIds(branches, mappings);
+    _logger.info('PR #$prId: matched env mapping ids: $matchedIds');
     await _repository.setEnvFlags(prId, matchedIds);
   }
 
@@ -318,9 +327,16 @@ class PrSyncService {
         .where((m) {
           final pattern = m.branchPattern.trim();
           if (pattern.isEmpty) return false;
-          return branches.any((b) => b.endsWith('/$pattern'));
+          return branches.any((b) => _branchMatchesPattern(b, pattern));
         })
         .map((m) => m.id)
         .toList();
+  }
+
+  bool _branchMatchesPattern(String branch, String pattern) {
+    final normalized = branch
+        .replaceFirst(RegExp(r'^remotes/'), '')
+        .replaceFirst(RegExp(r'^origin/'), '');
+    return normalized.endsWith('/$pattern') || normalized == pattern;
   }
 }
