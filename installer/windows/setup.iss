@@ -24,6 +24,7 @@ OutputBaseFilename=pr_list-setup-{#MyAppVersion}
 SetupIconFile=..\..\windows\runner\resources\app_icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 PrivilegesRequired=lowest
+CloseApplications=yes
 Compression=lzma2
 SolidCompression=yes
 

@@ -94,7 +94,6 @@ class UpdateNotifier extends StateNotifier<UpdateState> {
       _logger.info('Installing update v${info.version}');
 
       await _service.installUpdate(file, info);
-      await Future.delayed(const Duration(milliseconds: 500));
       exit(0);
     } catch (e) {
       _logger.severe('Update failed: $e');

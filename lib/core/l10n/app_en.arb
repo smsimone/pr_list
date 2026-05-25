@@ -88,5 +88,15 @@
   "serviceName": "Service",
   "token": "Token",
   "jiraInstanceUrlLabel": "Instance URL",
-  "ticketSyncStatus": "Ticket status"
+  "ticketSyncStatus": "Ticket status",
+  "aboutTitle": "About",
+  "aboutVersion": "Version {version}",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutDescription": "A simple PR management tool for Azure DevOps."
 }

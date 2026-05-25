@@ -12,6 +12,7 @@ import 'package:pr_list/features/projects/project_form_dialog.dart';
 import 'package:pr_list/features/projects/projects_providers.dart';
 import 'package:pr_list/features/settings/env_mapping_dialog.dart';
 import 'package:pr_list/features/settings/pat_settings_dialog.dart';
+import 'package:pr_list/shared/widgets/about_dialog.dart';
 import 'package:pr_list/shared/widgets/update_available_dialog.dart';
 
 class AppScaffold extends ConsumerStatefulWidget {
@@ -27,7 +28,9 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(updateStateProvider.notifier).checkForUpdate());
+    Future.microtask(
+      () => ref.read(updateStateProvider.notifier).checkForUpdate(),
+    );
   }
 
   @override
@@ -46,7 +49,10 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
         );
       }
       if (state.status == UpdateStateStatus.installing) {
-        Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+        Navigator.of(
+          context,
+          rootNavigator: true,
+        ).popUntil((route) => route.isFirst);
       }
     });
 
@@ -70,10 +76,11 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                   ? l10n.viewKanban
                   : l10n.viewList,
               onPressed: () {
-                ref.read(prListViewModeProvider.notifier).state =
-                    viewMode == PrListViewMode.groupedList
-                        ? PrListViewMode.kanban
-                        : PrListViewMode.groupedList;
+                ref
+                    .read(prListViewModeProvider.notifier)
+                    .state = viewMode == PrListViewMode.groupedList
+                    ? PrListViewMode.kanban
+                    : PrListViewMode.groupedList;
               },
               icon: Icon(
                 viewMode == PrListViewMode.groupedList
@@ -102,13 +109,22 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
             onPressed: () => getIt<LogService>().openLogWindow(),
             icon: const Icon(Icons.terminal),
           ),
+          IconButton(
+            tooltip: l10n.aboutTitle,
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => const AppAboutDialog(),
+            ),
+            icon: const Icon(Icons.info_outline),
+          ),
         ],
       ),
       body: widget.navigationShell,
       floatingActionButton: _fabForTab(currentIndex, context),
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
-        onDestinationSelected: (index) => widget.navigationShell.goBranch(index),
+        onDestinationSelected: (index) =>
+            widget.navigationShell.goBranch(index),
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.list_alt),
@@ -144,14 +160,18 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     switch (index) {
       case 0:
         return FloatingActionButton(
-          onPressed: () =>
-              showDialog(context: context, builder: (_) => const PrFormDialog()),
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => const PrFormDialog(),
+          ),
           child: const Icon(Icons.add),
         );
       case 1:
         return FloatingActionButton(
-          onPressed: () =>
-              showDialog(context: context, builder: (_) => const ProjectFormDialog()),
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => const ProjectFormDialog(),
+          ),
           child: const Icon(Icons.add),
         );
       default:
@@ -179,22 +199,20 @@ class _FilterButton extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final filter = ref.watch(prListFilterProvider);
     final projects = ref.watch(projectsNotifierProvider).items;
-    final hasActiveFilter = filter.selectedProjectAliases.isNotEmpty ||
+    final hasActiveFilter =
+        filter.selectedProjectAliases.isNotEmpty ||
         filter.ticketStatus != TicketStatusFilter.all;
 
     return IconButton(
       icon: Icon(
         Icons.filter_alt,
-        color: hasActiveFilter
-            ? Theme.of(context).colorScheme.primary
-            : null,
+        color: hasActiveFilter ? Theme.of(context).colorScheme.primary : null,
       ),
       tooltip: l10n.filterProject,
       onPressed: () {
         final button = context.findRenderObject() as RenderBox;
         final navigator = Navigator.of(context);
-        final overlay =
-            navigator.context.findRenderObject() as RenderBox;
+        final overlay = navigator.context.findRenderObject() as RenderBox;
         final position = RelativeRect.fromRect(
           Rect.fromPoints(
             button.localToGlobal(Offset.zero, ancestor: overlay),
@@ -214,19 +232,20 @@ class _FilterButton extends ConsumerWidget {
               initialFilter: filter,
               projects: projects,
               onProjectToggle: (alias) {
-                final current =
-                    Set<String>.from(filter.selectedProjectAliases);
+                final current = Set<String>.from(filter.selectedProjectAliases);
                 if (current.contains(alias)) {
                   current.remove(alias);
                 } else {
                   current.add(alias);
                 }
-                ref.read(prListFilterProvider.notifier).state =
-                    filter.copyWith(selectedProjectAliases: current);
+                ref.read(prListFilterProvider.notifier).state = filter.copyWith(
+                  selectedProjectAliases: current,
+                );
               },
               onTicketStatusChange: (status) {
-                ref.read(prListFilterProvider.notifier).state =
-                    filter.copyWith(ticketStatus: status);
+                ref.read(prListFilterProvider.notifier).state = filter.copyWith(
+                  ticketStatus: status,
+                );
               },
             ),
           ],
@@ -276,8 +295,9 @@ class _FilterMenuEntryState extends State<_FilterMenuEntry> {
   @override
   void initState() {
     super.initState();
-    _selectedProjects =
-        Set<String>.from(widget.initialFilter.selectedProjectAliases);
+    _selectedProjects = Set<String>.from(
+      widget.initialFilter.selectedProjectAliases,
+    );
     _ticketStatus = widget.initialFilter.ticketStatus;
   }
 

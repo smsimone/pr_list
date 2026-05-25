@@ -101,10 +101,23 @@ class UpdateService {
   }
 
   Future<void> _installWindows(File installerExe) async {
-    _logger.info('Running installer: ${installerExe.path}');
+    final tmpDir = Directory.systemTemp;
+    final appName = 'PR List';
+    final appExe = 'pr_list.exe';
+    final scriptContent = '''
+@echo off
+ping -n 6 127.0.0.1 > nul
+"${installerExe.path}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+start "" "%LOCALAPPDATA%\\$appName\\$appExe"
+del "${installerExe.path}" /q
+del "%~f0" /q
+''';
+    final scriptFile = File(p.join(tmpDir.path, 'pr_list_updater.bat'));
+    scriptFile.writeAsStringSync(scriptContent);
+    _logger.info('Running updater script: ${scriptFile.path}');
     await Process.start(
-      installerExe.path,
-      ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'],
+      scriptFile.path,
+      [],
       runInShell: true,
       mode: ProcessStartMode.detached,
     );
@@ -137,6 +150,7 @@ rm -rf "\$DST/pr_list.app"
 cp -R "\$SRC" "\$DST/"
 
 rm -rf "${extractDir.path}"
+open "\$DST/pr_list.app"
 rm -- "\$0"
 ''';
 
@@ -179,8 +193,10 @@ rm -- "\$0"
   }
 
   bool _isNewer(String latest, String current) {
-    final latestParts = latest.split(RegExp(r'[\.+]'));
-    final currentParts = current.split(RegExp(r'[\.+]'));
+    latest = latest.split('+')[0];
+    current = current.split('+')[0];
+    final latestParts = latest.split('.');
+    final currentParts = current.split('.');
     final len = latestParts.length > currentParts.length
         ? latestParts.length
         : currentParts.length;

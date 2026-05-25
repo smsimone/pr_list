@@ -231,4 +231,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ticketSyncStatus => 'Ticket status';
+
+  @override
+  String get aboutTitle => 'About';
+
+  @override
+  String aboutVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get aboutDescription =>
+      'A simple PR management tool for Azure DevOps.';
 }
