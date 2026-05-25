@@ -126,7 +126,17 @@ class AzureDevOpsProvider implements GitProvider {
       final lastCommit =
           (lastMergeSourceCommit?['commitId'] as String?) ?? '';
 
-      _logger.info('Parsed PR #$pullRequestId: status=$status, commitId=$lastCommit');
+      final lastMergeCommit =
+          body['lastMergeCommit'] as Map<String, dynamic>?;
+      final rawMergeSha =
+          (lastMergeCommit?['commitId'] as String?) ?? '';
+      final lastMergeCommitSha =
+          rawMergeSha.trim().isEmpty ? null : rawMergeSha.trim();
+
+      _logger.info(
+        'Parsed PR #$pullRequestId: status=$status, commitId=$lastCommit, '
+        'mergeCommit=${lastMergeCommitSha ?? '(not available)'}',
+      );
 
       if (lastCommit.isEmpty) {
         _logger.warning('Missing last merge source commit for PR #$pullRequestId');
@@ -141,6 +151,7 @@ class AzureDevOpsProvider implements GitProvider {
           pullRequestId: pullRequestId,
           status: status,
           lastCommitSha: lastCommit,
+          lastMergeCommitSha: lastMergeCommitSha,
         ),
       );
     } catch (err) {

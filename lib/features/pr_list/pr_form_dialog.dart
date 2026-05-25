@@ -28,6 +28,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   late TextEditingController _linkController;
   bool _ticketClosed = false;
   bool _isSaving = false;
+  bool _isVerifying = false;
   String? _submitError;
   bool _projectSelected = false;
 
@@ -110,6 +111,48 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     return IconButton(
       icon: const Icon(Icons.open_in_new, size: 18),
       onPressed: () => launchUrl(Uri.parse(text!.trim())),
+    );
+  }
+
+  Future<void> _verifyEnvironments() async {
+    final shouldProceed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Verifica ambienti'),
+        content: const Text(
+          'La verifica potrebbe richiedere del tempo.\n'
+          'Continuare?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(_l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Procedi'),
+          ),
+        ],
+      ),
+    );
+    if (shouldProceed != true || !mounted) return;
+
+    setState(() => _isVerifying = true);
+    final syncService = ref.read(prSyncServiceProvider);
+    final result = await syncService.verifyEnvironmentsForPr(
+      widget.existing!.id,
+    );
+    if (!mounted) return;
+    setState(() => _isVerifying = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.isRight
+              ? 'Verifica ambienti completata'
+              : 'Errore: ${result.left.message}',
+        ),
+      ),
     );
   }
 
@@ -315,19 +358,35 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
       actions: [
         if (widget.existing != null)
           TextButton(
-            onPressed: _isSaving ? null : _confirmDelete,
+            onPressed: (_isSaving || _isVerifying) ? null : _confirmDelete,
             child: Text(_l10n.delete),
+          ),
+        if (widget.existing != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: _isVerifying
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : OutlinedButton(
+                    onPressed: (_isSaving || _isVerifying) ? null : _verifyEnvironments,
+                    child: const Text('Verifica ambienti'),
+                  ),
           ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextButton(
-              onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+              onPressed: (_isSaving || _isVerifying)
+                  ? null
+                  : () => Navigator.of(context).pop(),
               child: Text(_l10n.cancel),
             ),
             const SizedBox(width: 8),
             FilledButton(
-              onPressed: _isSaving
+              onPressed: (_isSaving || _isVerifying)
                   ? null
                   : () async {
                       if (!_formKey.currentState!.validate()) {

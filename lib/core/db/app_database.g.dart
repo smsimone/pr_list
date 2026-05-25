@@ -97,6 +97,17 @@ class $PullRequestsTable extends PullRequests
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _lastMergeCommitShaMeta =
+      const VerificationMeta('lastMergeCommitSha');
+  @override
+  late final GeneratedColumn<String> lastMergeCommitSha =
+      GeneratedColumn<String>(
+        'last_merge_commit_sha',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _isTicketClosedMeta = const VerificationMeta(
     'isTicketClosed',
   );
@@ -155,6 +166,7 @@ class $PullRequestsTable extends PullRequests
     providerPrId,
     providerStatus,
     lastCommitSha,
+    lastMergeCommitSha,
     isTicketClosed,
     ticketStatus,
     createdAt,
@@ -228,6 +240,15 @@ class $PullRequestsTable extends PullRequests
         lastCommitSha.isAcceptableOrUnknown(
           data['last_commit_sha']!,
           _lastCommitShaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_merge_commit_sha')) {
+      context.handle(
+        _lastMergeCommitShaMeta,
+        lastMergeCommitSha.isAcceptableOrUnknown(
+          data['last_merge_commit_sha']!,
+          _lastMergeCommitShaMeta,
         ),
       );
     }
@@ -306,6 +327,10 @@ class $PullRequestsTable extends PullRequests
         DriftSqlType.string,
         data['${effectivePrefix}last_commit_sha'],
       ),
+      lastMergeCommitSha: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_merge_commit_sha'],
+      ),
       isTicketClosed: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_ticket_closed'],
@@ -340,6 +365,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
   final String? providerPrId;
   final String? providerStatus;
   final String? lastCommitSha;
+  final String? lastMergeCommitSha;
   final bool isTicketClosed;
   final String? ticketStatus;
   final DateTime createdAt;
@@ -353,6 +379,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     this.providerPrId,
     this.providerStatus,
     this.lastCommitSha,
+    this.lastMergeCommitSha,
     required this.isTicketClosed,
     this.ticketStatus,
     required this.createdAt,
@@ -380,6 +407,9 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     }
     if (!nullToAbsent || lastCommitSha != null) {
       map['last_commit_sha'] = Variable<String>(lastCommitSha);
+    }
+    if (!nullToAbsent || lastMergeCommitSha != null) {
+      map['last_merge_commit_sha'] = Variable<String>(lastMergeCommitSha);
     }
     map['is_ticket_closed'] = Variable<bool>(isTicketClosed);
     if (!nullToAbsent || ticketStatus != null) {
@@ -412,6 +442,9 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       lastCommitSha: lastCommitSha == null && nullToAbsent
           ? const Value.absent()
           : Value(lastCommitSha),
+      lastMergeCommitSha: lastMergeCommitSha == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastMergeCommitSha),
       isTicketClosed: Value(isTicketClosed),
       ticketStatus: ticketStatus == null && nullToAbsent
           ? const Value.absent()
@@ -435,6 +468,9 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       providerPrId: serializer.fromJson<String?>(json['providerPrId']),
       providerStatus: serializer.fromJson<String?>(json['providerStatus']),
       lastCommitSha: serializer.fromJson<String?>(json['lastCommitSha']),
+      lastMergeCommitSha: serializer.fromJson<String?>(
+        json['lastMergeCommitSha'],
+      ),
       isTicketClosed: serializer.fromJson<bool>(json['isTicketClosed']),
       ticketStatus: serializer.fromJson<String?>(json['ticketStatus']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -453,6 +489,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       'providerPrId': serializer.toJson<String?>(providerPrId),
       'providerStatus': serializer.toJson<String?>(providerStatus),
       'lastCommitSha': serializer.toJson<String?>(lastCommitSha),
+      'lastMergeCommitSha': serializer.toJson<String?>(lastMergeCommitSha),
       'isTicketClosed': serializer.toJson<bool>(isTicketClosed),
       'ticketStatus': serializer.toJson<String?>(ticketStatus),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -469,6 +506,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     Value<String?> providerPrId = const Value.absent(),
     Value<String?> providerStatus = const Value.absent(),
     Value<String?> lastCommitSha = const Value.absent(),
+    Value<String?> lastMergeCommitSha = const Value.absent(),
     bool? isTicketClosed,
     Value<String?> ticketStatus = const Value.absent(),
     DateTime? createdAt,
@@ -486,6 +524,9 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     lastCommitSha: lastCommitSha.present
         ? lastCommitSha.value
         : this.lastCommitSha,
+    lastMergeCommitSha: lastMergeCommitSha.present
+        ? lastMergeCommitSha.value
+        : this.lastMergeCommitSha,
     isTicketClosed: isTicketClosed ?? this.isTicketClosed,
     ticketStatus: ticketStatus.present ? ticketStatus.value : this.ticketStatus,
     createdAt: createdAt ?? this.createdAt,
@@ -511,6 +552,9 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       lastCommitSha: data.lastCommitSha.present
           ? data.lastCommitSha.value
           : this.lastCommitSha,
+      lastMergeCommitSha: data.lastMergeCommitSha.present
+          ? data.lastMergeCommitSha.value
+          : this.lastMergeCommitSha,
       isTicketClosed: data.isTicketClosed.present
           ? data.isTicketClosed.value
           : this.isTicketClosed,
@@ -533,6 +577,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
           ..write('providerPrId: $providerPrId, ')
           ..write('providerStatus: $providerStatus, ')
           ..write('lastCommitSha: $lastCommitSha, ')
+          ..write('lastMergeCommitSha: $lastMergeCommitSha, ')
           ..write('isTicketClosed: $isTicketClosed, ')
           ..write('ticketStatus: $ticketStatus, ')
           ..write('createdAt: $createdAt, ')
@@ -551,6 +596,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     providerPrId,
     providerStatus,
     lastCommitSha,
+    lastMergeCommitSha,
     isTicketClosed,
     ticketStatus,
     createdAt,
@@ -568,6 +614,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
           other.providerPrId == this.providerPrId &&
           other.providerStatus == this.providerStatus &&
           other.lastCommitSha == this.lastCommitSha &&
+          other.lastMergeCommitSha == this.lastMergeCommitSha &&
           other.isTicketClosed == this.isTicketClosed &&
           other.ticketStatus == this.ticketStatus &&
           other.createdAt == this.createdAt &&
@@ -583,6 +630,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
   final Value<String?> providerPrId;
   final Value<String?> providerStatus;
   final Value<String?> lastCommitSha;
+  final Value<String?> lastMergeCommitSha;
   final Value<bool> isTicketClosed;
   final Value<String?> ticketStatus;
   final Value<DateTime> createdAt;
@@ -596,6 +644,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     this.providerPrId = const Value.absent(),
     this.providerStatus = const Value.absent(),
     this.lastCommitSha = const Value.absent(),
+    this.lastMergeCommitSha = const Value.absent(),
     this.isTicketClosed = const Value.absent(),
     this.ticketStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -610,6 +659,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     this.providerPrId = const Value.absent(),
     this.providerStatus = const Value.absent(),
     this.lastCommitSha = const Value.absent(),
+    this.lastMergeCommitSha = const Value.absent(),
     this.isTicketClosed = const Value.absent(),
     this.ticketStatus = const Value.absent(),
     required DateTime createdAt,
@@ -626,6 +676,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     Expression<String>? providerPrId,
     Expression<String>? providerStatus,
     Expression<String>? lastCommitSha,
+    Expression<String>? lastMergeCommitSha,
     Expression<bool>? isTicketClosed,
     Expression<String>? ticketStatus,
     Expression<DateTime>? createdAt,
@@ -640,6 +691,8 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
       if (providerPrId != null) 'provider_pr_id': providerPrId,
       if (providerStatus != null) 'provider_status': providerStatus,
       if (lastCommitSha != null) 'last_commit_sha': lastCommitSha,
+      if (lastMergeCommitSha != null)
+        'last_merge_commit_sha': lastMergeCommitSha,
       if (isTicketClosed != null) 'is_ticket_closed': isTicketClosed,
       if (ticketStatus != null) 'ticket_status': ticketStatus,
       if (createdAt != null) 'created_at': createdAt,
@@ -656,6 +709,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     Value<String?>? providerPrId,
     Value<String?>? providerStatus,
     Value<String?>? lastCommitSha,
+    Value<String?>? lastMergeCommitSha,
     Value<bool>? isTicketClosed,
     Value<String?>? ticketStatus,
     Value<DateTime>? createdAt,
@@ -670,6 +724,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
       providerPrId: providerPrId ?? this.providerPrId,
       providerStatus: providerStatus ?? this.providerStatus,
       lastCommitSha: lastCommitSha ?? this.lastCommitSha,
+      lastMergeCommitSha: lastMergeCommitSha ?? this.lastMergeCommitSha,
       isTicketClosed: isTicketClosed ?? this.isTicketClosed,
       ticketStatus: ticketStatus ?? this.ticketStatus,
       createdAt: createdAt ?? this.createdAt,
@@ -704,6 +759,9 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     if (lastCommitSha.present) {
       map['last_commit_sha'] = Variable<String>(lastCommitSha.value);
     }
+    if (lastMergeCommitSha.present) {
+      map['last_merge_commit_sha'] = Variable<String>(lastMergeCommitSha.value);
+    }
     if (isTicketClosed.present) {
       map['is_ticket_closed'] = Variable<bool>(isTicketClosed.value);
     }
@@ -730,6 +788,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
           ..write('providerPrId: $providerPrId, ')
           ..write('providerStatus: $providerStatus, ')
           ..write('lastCommitSha: $lastCommitSha, ')
+          ..write('lastMergeCommitSha: $lastMergeCommitSha, ')
           ..write('isTicketClosed: $isTicketClosed, ')
           ..write('ticketStatus: $ticketStatus, ')
           ..write('createdAt: $createdAt, ')
@@ -2050,6 +2109,7 @@ typedef $$PullRequestsTableCreateCompanionBuilder =
       Value<String?> providerPrId,
       Value<String?> providerStatus,
       Value<String?> lastCommitSha,
+      Value<String?> lastMergeCommitSha,
       Value<bool> isTicketClosed,
       Value<String?> ticketStatus,
       required DateTime createdAt,
@@ -2065,6 +2125,7 @@ typedef $$PullRequestsTableUpdateCompanionBuilder =
       Value<String?> providerPrId,
       Value<String?> providerStatus,
       Value<String?> lastCommitSha,
+      Value<String?> lastMergeCommitSha,
       Value<bool> isTicketClosed,
       Value<String?> ticketStatus,
       Value<DateTime> createdAt,
@@ -2140,6 +2201,11 @@ class $$PullRequestsTableFilterComposer
 
   ColumnFilters<String> get lastCommitSha => $composableBuilder(
     column: $table.lastCommitSha,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastMergeCommitSha => $composableBuilder(
+    column: $table.lastMergeCommitSha,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2238,6 +2304,11 @@ class $$PullRequestsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get lastMergeCommitSha => $composableBuilder(
+    column: $table.lastMergeCommitSha,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isTicketClosed => $composableBuilder(
     column: $table.isTicketClosed,
     builder: (column) => ColumnOrderings(column),
@@ -2299,6 +2370,11 @@ class $$PullRequestsTableAnnotationComposer
 
   GeneratedColumn<String> get lastCommitSha => $composableBuilder(
     column: $table.lastCommitSha,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastMergeCommitSha => $composableBuilder(
+    column: $table.lastMergeCommitSha,
     builder: (column) => column,
   );
 
@@ -2380,6 +2456,7 @@ class $$PullRequestsTableTableManager
                 Value<String?> providerPrId = const Value.absent(),
                 Value<String?> providerStatus = const Value.absent(),
                 Value<String?> lastCommitSha = const Value.absent(),
+                Value<String?> lastMergeCommitSha = const Value.absent(),
                 Value<bool> isTicketClosed = const Value.absent(),
                 Value<String?> ticketStatus = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -2393,6 +2470,7 @@ class $$PullRequestsTableTableManager
                 providerPrId: providerPrId,
                 providerStatus: providerStatus,
                 lastCommitSha: lastCommitSha,
+                lastMergeCommitSha: lastMergeCommitSha,
                 isTicketClosed: isTicketClosed,
                 ticketStatus: ticketStatus,
                 createdAt: createdAt,
@@ -2408,6 +2486,7 @@ class $$PullRequestsTableTableManager
                 Value<String?> providerPrId = const Value.absent(),
                 Value<String?> providerStatus = const Value.absent(),
                 Value<String?> lastCommitSha = const Value.absent(),
+                Value<String?> lastMergeCommitSha = const Value.absent(),
                 Value<bool> isTicketClosed = const Value.absent(),
                 Value<String?> ticketStatus = const Value.absent(),
                 required DateTime createdAt,
@@ -2421,6 +2500,7 @@ class $$PullRequestsTableTableManager
                 providerPrId: providerPrId,
                 providerStatus: providerStatus,
                 lastCommitSha: lastCommitSha,
+                lastMergeCommitSha: lastMergeCommitSha,
                 isTicketClosed: isTicketClosed,
                 ticketStatus: ticketStatus,
                 createdAt: createdAt,

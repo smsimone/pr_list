@@ -17,6 +17,7 @@ class PullRequests extends Table {
   TextColumn get providerPrId => text().nullable()();
   TextColumn get providerStatus => text().nullable()();
   TextColumn get lastCommitSha => text().nullable()();
+  TextColumn get lastMergeCommitSha => text().nullable()();
   BoolColumn get isTicketClosed =>
       boolean().withDefault(const Constant(false))();
   TextColumn get ticketStatus => text().nullable()();
@@ -132,6 +133,21 @@ class AppDatabase extends _$AppDatabase {
         } catch (e) {
           if (e.toString().contains('duplicate column name')) {
             _logger.warning('Column "ticketStatus" already exists, skipping migration v6');
+          } else {
+            rethrow;
+          }
+        }
+      },
+    ),
+    _MigrationStep(
+      version: 7,
+      checksum: '20250525_merge_commit_sha',
+      run: (Migrator m) async {
+        try {
+          await m.addColumn(pullRequests, pullRequests.lastMergeCommitSha);
+        } catch (e) {
+          if (e.toString().contains('duplicate column name')) {
+            _logger.warning('Column "lastMergeCommitSha" already exists, skipping migration v7');
           } else {
             rethrow;
           }

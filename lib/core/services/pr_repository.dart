@@ -95,6 +95,7 @@ class PrRepository {
     required String providerPrId,
     required String providerStatus,
     required String lastCommitSha,
+    String? lastMergeCommitSha,
   }) async {
     assert(id > 0, 'id must be greater than 0');
     assert(provider.trim().isNotEmpty, 'provider must not be empty');
@@ -105,13 +106,17 @@ class PrRepository {
     );
     assert(lastCommitSha.trim().isNotEmpty, 'lastCommitSha must not be empty');
     try {
-      _logger.info('Updating provider info for PR #$id: status=$providerStatus, sha=$lastCommitSha');
+      _logger.info(
+        'Updating provider info for PR #$id: status=$providerStatus, '
+        'sha=$lastCommitSha, mergeSha=${lastMergeCommitSha ?? '(none)'}',
+      );
       await (_db.update(_db.pullRequests)..where((t) => t.id.equals(id))).write(
         PullRequestsCompanion(
           provider: Value(provider),
           providerPrId: Value(providerPrId),
           providerStatus: Value(providerStatus),
           lastCommitSha: Value(lastCommitSha),
+          lastMergeCommitSha: Value(lastMergeCommitSha),
           updatedAt: Value(DateTime.now()),
         ),
       );

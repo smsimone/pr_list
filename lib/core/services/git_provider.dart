@@ -6,12 +6,14 @@ class ProviderPullRequestInfo {
   final String pullRequestId;
   final String status;
   final String lastCommitSha;
+  final String? lastMergeCommitSha;
 
   const ProviderPullRequestInfo({
     required this.provider,
     required this.pullRequestId,
     required this.status,
     required this.lastCommitSha,
+    this.lastMergeCommitSha,
   });
 }
 

@@ -67,6 +67,32 @@ class PrSyncService {
     _schedulePeriodicSync();
   }
 
+  /// Triggers environment verification for a single PR by its [prId].
+  /// Can be called manually (e.g. from the edit dialog) and respects the
+  /// in-progress guard.
+  Future<Either<Failure, void>> verifyEnvironmentsForPr(int prId) async {
+    if (_isSyncRunning) {
+      return const Either.left(Failure(message: 'Sync already in progress'));
+    }
+    _isSyncRunning = true;
+    try {
+      final prResult = await _repository.getById(prId);
+      if (prResult.isLeft || prResult.right == null) {
+        return Either.left(
+          Failure(message: 'PR #$prId not found'),
+        );
+      }
+      final pr = prResult.right!;
+      final lastCommit = await _loadLastCommit(pr.id);
+      final mergeCommit = await _loadMergeCommit(pr.id);
+      final workingDir = await _resolveWorkingDirectory(pr);
+      await _syncEnvironments(pr.id, lastCommit, mergeCommit, workingDir);
+      return const Either.right(null);
+    } finally {
+      _isSyncRunning = false;
+    }
+  }
+
   Future<void> _syncAll() async {
     if (_isSyncRunning) {
       _logger.info('PR sync already in progress, skipping');
@@ -127,8 +153,14 @@ class PrSyncService {
         if (updatedStatus == 'completed') {
           _logger.info('$prLabel: status is completed, checking environments...');
           final lastCommit = await _loadLastCommit(pr.id);
+          final mergeCommit = await _loadMergeCommit(pr.id);
           final workingDir = await _resolveWorkingDirectory(pr);
-          await _syncEnvironments(pr.id, lastCommit, workingDir);
+          await _syncEnvironments(
+            pr.id,
+            lastCommit,
+            mergeCommit,
+            workingDir,
+          );
         } else {
           _logger.info('$prLabel: status=$updatedStatus, skipping environment check');
         }
@@ -198,7 +230,9 @@ class PrSyncService {
     }
     final info = infoResult.right;
     _logger.info(
-      '$prLabel: provider response -> status=${info.status}, commitSha=${info.lastCommitSha}',
+      '$prLabel: provider response -> status=${info.status}, '
+      'commitSha=${info.lastCommitSha}, '
+      'mergeCommitSha=${info.lastMergeCommitSha ?? '(none)'}',
     );
     final updateResult = await _repository.updateProviderInfo(
       id: pr.id,
@@ -206,6 +240,7 @@ class PrSyncService {
       providerPrId: info.pullRequestId,
       providerStatus: info.status,
       lastCommitSha: info.lastCommitSha,
+      lastMergeCommitSha: info.lastMergeCommitSha,
     );
     if (updateResult.isLeft) {
       _logger.warning('$prLabel: DB update failed: ${updateResult.left.message}');
@@ -217,35 +252,106 @@ class PrSyncService {
   Future<void> _syncEnvironments(
     int prId,
     String? lastCommitSha,
+    String? lastMergeCommitSha,
     String? workingDirectory,
   ) async {
-    if (lastCommitSha == null || lastCommitSha.trim().isEmpty) {
-      _logger.info('PR #$prId: no commit SHA, skipping environment check');
-      return;
-    }
     if (workingDirectory == null || workingDirectory.trim().isEmpty) {
       _logger.warning('PR #$prId: missing working directory for git command');
       return;
     }
-    _logger.info('PR #$prId: checking branches containing $lastCommitSha in $workingDirectory');
-    final branchesResult = await _gitClient.branchesContainingCommit(
-      lastCommitSha,
-      workingDirectory: workingDirectory,
-    );
-    if (branchesResult.isLeft) {
-      _logger.warning('PR #$prId: git branch-contains failed: ${branchesResult.left.message}');
+
+    // Determine which SHA to use for branch detection.
+    // Prefer the merge commit SHA (more reliable for cherry-pick detection),
+    // fall back to the source commit SHA.
+    final targetSha = (lastMergeCommitSha != null &&
+            lastMergeCommitSha.trim().isNotEmpty)
+        ? lastMergeCommitSha
+        : lastCommitSha;
+    if (targetSha == null || targetSha.trim().isEmpty) {
+      _logger.info('PR #$prId: no commit SHA, skipping environment check');
       return;
     }
-    final branches = branchesResult.right;
 
-    final envResult = await _envMappingRepository.getAll();
+    _logger.info(
+      'PR #$prId: checking branches for $targetSha '
+      '(source=$lastCommitSha, merge=$lastMergeCommitSha) in $workingDirectory',
+    );
+
+    // Collect multiple candidate SHAs: the merge commit SHA is preferred,
+    // but the source commit SHA is also tried as fallback because a cherry-pick
+    // onto another branch may reference either commit.
+    final candidateShas = <String>{targetSha};
+    if (lastCommitSha != null &&
+        lastCommitSha.trim().isNotEmpty &&
+        lastCommitSha != targetSha) {
+      candidateShas.add(lastCommitSha);
+    }
+
+    final envMappingsResult = await _envMappingRepository.getAll();
     List<EnvironmentMapping> mappings;
-    if (envResult.isLeft) {
-      _logger.warning('PR #$prId: failed to load env mappings, using defaults');
+    if (envMappingsResult.isLeft) {
+      _logger.warning(
+        'PR #$prId: failed to load env mappings, using defaults',
+      );
       mappings = _defaultMappings();
     } else {
-      mappings = envResult.right;
+      mappings = envMappingsResult.right;
     }
+
+    final envBranchPatterns = mappings
+        .map((m) => m.branchPattern.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+
+    final allBranches = <String>{};
+    String? baseRef;
+
+    for (final candidateSha in candidateShas) {
+      _logger.info('PR #$prId: trying candidate SHA $candidateSha');
+
+      // Step 1: fast check — direct commit ancestry
+      final branchesResult = await _gitClient.branchesContainingCommit(
+        candidateSha,
+        workingDirectory: workingDirectory,
+      );
+      if (branchesResult.isRight) {
+        allBranches.addAll(branchesResult.right);
+        if (baseRef == null && branchesResult.right.isNotEmpty) {
+          baseRef = _sanitizeBaseRef(branchesResult.right.first);
+        }
+      }
+
+      // Step 2: patch-id check — detect cherry-picked commits
+      // Only run on branches not already found by any previous SHA
+      final normalizedFound = allBranches
+          .map((b) => b.replaceFirst(RegExp(r'^(remotes/)?origin/'), ''))
+          .toSet();
+      final branchesToCheck = envBranchPatterns
+          .where((p) => !normalizedFound.any(
+            (b) => b == p || b.endsWith('/$p'),
+          ))
+          .toList();
+
+      if (branchesToCheck.isEmpty) {
+        // All environment branches already found — stop early
+        break;
+      }
+
+      _logger.info(
+        'PR #$prId: running patch-id check for branches: $branchesToCheck '
+        '(baseRef=$baseRef)',
+      );
+      final patchResult = await _gitClient.branchesContainingPatchId(
+        candidateSha,
+        workingDirectory: workingDirectory,
+        onlyBranches: branchesToCheck,
+        baseRef: baseRef,
+      );
+      if (patchResult.isRight) {
+        allBranches.addAll(patchResult.right);
+      }
+    }
+
     _logger.info(
       'PR #$prId: loaded ${mappings.length} env mapping(s)',
     );
@@ -257,8 +363,8 @@ class PrSyncService {
       }
     }
 
-    _logger.info('PR #$prId: branches: $branches');
-    final matchedIds = _resolveMatchedMappingIds(branches, mappings);
+    _logger.info('PR #$prId: branches: $allBranches');
+    final matchedIds = _resolveMatchedMappingIds(allBranches.toList(), mappings);
     _logger.info('PR #$prId: matched env mapping ids: $matchedIds');
     await _repository.setEnvFlags(prId, matchedIds);
   }
@@ -327,12 +433,20 @@ class PrSyncService {
     return result.right?.lastCommitSha;
   }
 
+  Future<String?> _loadMergeCommit(int id) async {
+    final result = await _repository.getById(id);
+    if (result.isLeft) {
+      return null;
+    }
+    return result.right?.lastMergeCommitSha;
+  }
+
   Future<String?> _resolveWorkingDirectory(PullRequest pr) async {
     if (pr.projectAlias.trim().isEmpty) {
       return null;
     }
     final result = await _projectRepository.getByAlias(pr.projectAlias);
-    if (result.isLeft) {
+    if (result.isLeft || !result.isRight) {
       return null;
     }
     return result.right?.path;
@@ -395,5 +509,13 @@ class PrSyncService {
         .replaceFirst(RegExp(r'^remotes/'), '')
         .replaceFirst(RegExp(r'^origin/'), '');
     return normalized.endsWith('/$pattern') || normalized == pattern;
+  }
+
+  /// Sanitizes a branch ref extracted from `git branch -r` output.
+  /// Handles entries like `origin/HEAD -> origin/develop` by returning the
+  /// last ref after ` -> `, or the ref itself if no arrow is present.
+  String _sanitizeBaseRef(String ref) {
+    final parts = ref.split(' -> ');
+    return parts.last.trim();
   }
 }
