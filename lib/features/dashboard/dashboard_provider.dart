@@ -8,10 +8,10 @@ final dashboardProvider = StreamProvider<DashboardState>((ref) async* {
   final log = Logger('Dashboard');
   final repository = getIt<PrRepository>();
 
-  final flagsResult = await repository.getAllEnvFlags();
-  final flags = flagsResult.isLeft ? <int, List<int>>{} : flagsResult.right;
-
   await for (final items in repository.watchAll()) {
+    final flagsResult = await repository.getAllEnvFlags();
+    final flags = flagsResult.isLeft ? <int, List<int>>{} : flagsResult.right;
+
     final withJira = items
         .where((pr) => pr.jiraTicket != null && pr.jiraTicket!.isNotEmpty)
         .toList();

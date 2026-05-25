@@ -5,6 +5,7 @@ import 'package:pr_list/core/services/pr_sync_service.dart';
 import 'package:pr_list/core/services/provider_registry.dart';
 import 'package:pr_list/features/pr_list/pr_list_notifier.dart';
 import 'package:pr_list/features/pr_list/pr_list_state.dart';
+import 'package:pr_list/features/settings/env_mapping_providers.dart';
 
 enum PrListViewMode { groupedList, kanban }
 
@@ -17,6 +18,8 @@ final prListNotifierProvider =
     );
 
 final prEnvFlagsProvider = FutureProvider<Map<int, List<int>>>((ref) async {
+  ref.watch(prListNotifierProvider);
+  ref.watch(envMappingsProvider);
   final repo = getIt<PrRepository>();
   final result = await repo.getAllEnvFlags();
   if (result.isLeft) {
