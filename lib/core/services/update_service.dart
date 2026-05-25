@@ -64,7 +64,8 @@ class UpdateService {
   ) async {
     _logger.info('Downloading update from ${info.downloadUrl}');
     final tmpDir = Directory.systemTemp;
-    final dest = File(p.join(tmpDir.path, 'pr_list_update_${info.version}.zip'));
+    final ext = Platform.isWindows ? '.exe' : '.zip';
+    final dest = File(p.join(tmpDir.path, 'pr_list_update_${info.version}$ext'));
     final request = http.Request('GET', Uri.parse(info.downloadUrl));
     final response = await http.Client().send(request);
     final total = response.contentLength ?? 0;
@@ -84,17 +85,12 @@ class UpdateService {
     return dest;
   }
 
-  Future<void> installUpdate(File zipFile, UpdateInfo info) async {
-    final tmpDir = Directory.systemTemp;
-    final extractDir = Directory(p.join(tmpDir.path, 'pr_list_$info.version'));
-    if (extractDir.existsSync()) extractDir.deleteSync(recursive: true);
-    extractDir.createSync();
-
+  Future<void> installUpdate(File downloadedFile, UpdateInfo info) async {
     try {
       if (Platform.isWindows) {
-        await _installWindows(zipFile, extractDir, tmpDir);
+        await _installWindows(downloadedFile);
       } else if (Platform.isMacOS) {
-        await _installMacOS(zipFile, extractDir, tmpDir);
+        await _installMacOS(downloadedFile);
       } else {
         throw UnsupportedError('Unsupported platform: ${Platform.operatingSystem}');
       }
@@ -104,62 +100,22 @@ class UpdateService {
     }
   }
 
-  Future<void> _installWindows(
-    File zipFile,
-    Directory extractDir,
-    Directory tmpDir,
-  ) async {
-    final installDir = p.dirname(Platform.resolvedExecutable);
-    final exePath = Platform.resolvedExecutable;
-
-    await Process.run('powershell', [
-      '-Command',
-      'Expand-Archive',
-      '-Path',
-      zipFile.path,
-      '-DestinationPath',
-      extractDir.path,
-      '-Force',
-    ]);
-
-    final updaterScript = '''
-@echo off
-setlocal
-set "SRC=${extractDir.path}"
-set "DST=$installDir"
-set "EXE=$exePath"
-
-:WAIT
-timeout /T 2 /NOBREAK >NUL 2>&1
-tasklist /FI "IMAGENAME eq pr_list.exe" 2>NUL | find /I "pr_list.exe" >NUL 2>&1
-if not errorlevel 1 goto WAIT
-
-xcopy /E /Y /Q "%SRC%\\*" "%DST%\\" >NUL 2>&1
-if errorlevel 1 (
-  rmdir /S /Q "%SRC%" 2>NUL
-  exit /B 1
-)
-start "" /D "%DST%" "%EXE%"
-rmdir /S /Q "%SRC%" 2>NUL
-del "%~f0" 2>NUL
-''';
-
-    final scriptFile = File(p.join(tmpDir.path, 'pr_list_updater.bat'));
-    scriptFile.writeAsStringSync(updaterScript);
-
+  Future<void> _installWindows(File installerExe) async {
+    _logger.info('Running installer: ${installerExe.path}');
     await Process.start(
-      scriptFile.path,
-      [],
+      installerExe.path,
+      ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'],
       runInShell: true,
       mode: ProcessStartMode.detached,
     );
   }
 
-  Future<void> _installMacOS(
-    File zipFile,
-    Directory extractDir,
-    Directory tmpDir,
-  ) async {
+  Future<void> _installMacOS(File zipFile) async {
+    final tmpDir = Directory.systemTemp;
+    final extractDir = Directory(p.join(tmpDir.path, 'pr_list_extract'));
+    if (extractDir.existsSync()) extractDir.deleteSync(recursive: true);
+    extractDir.createSync();
+
     final appBundle = Platform.resolvedExecutable;
     final appDir = p.dirname(p.dirname(p.dirname(appBundle)));
 
@@ -170,22 +126,17 @@ del "%~f0" 2>NUL
       extractDir.path,
     ]);
 
-    final srcDir = extractDir.path;
-    final dstDir = appDir;
-    final appPath = appBundle;
     final updaterScript = '''
 #!/bin/bash
-SRC="$srcDir/pr_list.app"
-DST="$dstDir"
-APP="$appPath"
+SRC="${extractDir.path}/pr_list.app"
+DST="$appDir"
 
 sleep 3
 
 rm -rf "\$DST/pr_list.app"
 cp -R "\$SRC" "\$DST/"
-open "\$APP"
 
-rm -rf "$extractDir"
+rm -rf "${extractDir.path}"
 rm -- "\$0"
 ''';
 
@@ -222,7 +173,7 @@ rm -- "\$0"
   }
 
   String _platformAssetPrefix() {
-    if (Platform.isWindows) return 'pr_list-windows-';
+    if (Platform.isWindows) return 'pr_list-setup-';
     if (Platform.isMacOS) return 'pr_list-macos-';
     throw UnsupportedError('Unsupported platform');
   }

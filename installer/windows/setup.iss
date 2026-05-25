@@ -36,10 +36,7 @@ Source: "..\..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ign
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-
-[Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch PR List"; Flags: nowait postinstall skipifsilent
+Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 
 [UninstallRun]
 Filename: "{cmd}"; Parameters: "/C taskkill /IM ""{#MyAppExeName}"" /F /T"; Flags: runhidden

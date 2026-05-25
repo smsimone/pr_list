@@ -55,14 +55,10 @@ jobs:
         with:
           channel: stable
       - run: flutter build windows --release
-      - name: Package
-        shell: pwsh
-        run: |
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "pr_list-windows-${{ needs.check_version.outputs.version }}.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: pr_list-windows-*.zip
+          path: build\windows\x64\runner\Release\
 
   build_installer:
     needs: [check_version, build_windows]
@@ -95,6 +91,6 @@ jobs:
           gh release create "v${{ needs.check_version.outputs.version }}" \
             --title "v${{ needs.check_version.outputs.version }}" \
             --notes "Automated build from commit ${{ github.sha }}" \
-            macos-build/*.zip windows-build/*.zip windows-installer/*.exe
+            macos-build/*.zip windows-installer/*.exe
         env:
           GH_TOKEN: ${{ github.token }}
