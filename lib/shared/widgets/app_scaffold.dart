@@ -27,7 +27,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
   @override
   void initState() {
     super.initState();
-    ref.read(updateStateProvider.notifier).checkForUpdate();
+    Future.microtask(() => ref.read(updateStateProvider.notifier).checkForUpdate());
   }
 
   @override

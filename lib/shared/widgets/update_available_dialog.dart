@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
+import 'package:pr_list/core/router/app_router.dart';
 import 'package:pr_list/core/services/models/update_info.dart';
 import 'package:pr_list/core/services/update_notifier.dart';
 
@@ -12,26 +13,45 @@ class UpdateAvailableDialog extends ConsumerWidget {
     final state = ref.watch(updateStateProvider);
 
     return switch (state.status) {
-      UpdateStateStatus.available => _availableContent(context, ref, state.info!),
-      UpdateStateStatus.downloading => _progressContent(context, state.progress),
+      UpdateStateStatus.available => _availableContent(
+        context,
+        ref,
+        state.info!,
+      ),
+      UpdateStateStatus.downloading => _progressContent(
+        context,
+        state.progress,
+      ),
       UpdateStateStatus.installing => _installingContent(context),
-      UpdateStateStatus.error => _errorContent(context, ref, state.errorMessage),
+      UpdateStateStatus.error => _errorContent(
+        context,
+        ref,
+        state.errorMessage,
+      ),
       _ => const SizedBox.shrink(),
     };
   }
 
-  Widget _availableContent(BuildContext context, WidgetRef ref, UpdateInfo info) {
+  Widget _availableContent(
+    BuildContext context,
+    WidgetRef ref,
+    UpdateInfo info,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
       title: Text(l10n.updateAvailableTitle),
       content: Text(l10n.updateAvailableBody(info.version)),
       actions: [
         TextButton(
-          onPressed: () => ref.read(updateStateProvider.notifier).dismiss(),
+          onPressed: () {
+            ref.read(updateStateProvider.notifier).dismiss();
+            appRouter.pop();
+          },
           child: Text(l10n.actionSkip),
         ),
         FilledButton(
-          onPressed: () => ref.read(updateStateProvider.notifier).downloadAndInstall(),
+          onPressed: () =>
+              ref.read(updateStateProvider.notifier).downloadAndInstall(),
           child: Text(l10n.actionDownload),
         ),
       ],
