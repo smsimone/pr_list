@@ -130,6 +130,37 @@ class LocalGitClient implements GitClient {
   }
 
   @override
+  Future<Either<Failure, String>> getRemoteUrl({
+    required String workingDirectory,
+  }) async {
+    assert(
+      workingDirectory.trim().isNotEmpty,
+      'workingDirectory must not be empty',
+    );
+    _logger.info('git remote get-url origin in $workingDirectory');
+    try {
+      final result = await Process.run(
+        'git',
+        ['remote', 'get-url', 'origin'],
+        workingDirectory: workingDirectory,
+        runInShell: true,
+      );
+      if (result.exitCode != 0) {
+        _logger.warning('git remote get-url exit ${result.exitCode}: ${result.stderr}');
+        return Either.left(
+          Failure(message: 'git remote get-url failed', cause: result.stderr),
+        );
+      }
+      final url = result.stdout.toString().trim();
+      _logger.info('git remote get-url origin -> $url');
+      return Either.right(url);
+    } catch (err) {
+      _logger.severe('git command error: $err');
+      return Either.left(Failure(message: 'git command error', cause: err));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<String>>> listBranches({
     required String workingDirectory,
     bool fetch = false,

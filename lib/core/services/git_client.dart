@@ -18,4 +18,8 @@ abstract class GitClient {
     required String workingDirectory,
     bool fetch = false,
   });
+
+  Future<Either<Failure, String>> getRemoteUrl({
+    required String workingDirectory,
+  });
 }

@@ -164,9 +164,24 @@ class PrSyncService {
   ) async {
     final prLabel = 'PR #${pr.id}';
     _logger.info('$prLabel: calling ${provider.name} API...');
+
+    String? remoteUrl;
+    if (pr.projectAlias.trim().isNotEmpty) {
+      final projectResult = await _projectRepository.getByAlias(pr.projectAlias);
+      if (projectResult.isRight && projectResult.right != null) {
+        final path = projectResult.right!.path;
+        final remoteResult = await _gitClient.getRemoteUrl(workingDirectory: path);
+        if (remoteResult.isRight) {
+          remoteUrl = remoteResult.right;
+          _logger.info('$prLabel: resolved remote URL: $remoteUrl');
+        }
+      }
+    }
+
     final infoResult = await provider.fetchPullRequestInfo(
       url: pr.prLink!,
       pat: pat,
+      remoteUrl: remoteUrl,
     );
     if (infoResult.isLeft) {
       _logger.warning('$prLabel: provider API error: ${infoResult.left.message}');

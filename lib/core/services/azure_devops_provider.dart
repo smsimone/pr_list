@@ -53,27 +53,43 @@ class AzureDevOpsProvider implements GitProvider {
   Future<Either<Failure, ProviderPullRequestInfo>> fetchPullRequestInfo({
     required String url,
     required String pat,
+    String? remoteUrl,
   }) async {
     assert(url.trim().isNotEmpty, 'url must not be empty');
     assert(pat.trim().isNotEmpty, 'pat must not be empty');
-    final Uri? parsed = Uri.tryParse(url);
-    if (parsed == null) {
-      return const Either.left(Failure(message: 'Invalid URL'));
-    }
-    if (parsed.host != 'dev.azure.com') {
-      return const Either.left(Failure(message: 'Unsupported host'));
+
+    final String pullRequestId = _extractPrId(url);
+    if (pullRequestId.isEmpty) {
+      return const Either.left(Failure(message: 'Could not extract PR ID from URL'));
     }
 
-    if (parsed.pathSegments.length < 4) {
-      return const Either.left(
-        Failure(message: 'Not enough path segments to build API URL'),
-      );
-    }
+    String organization;
+    String project;
+    String repository;
 
-    final String organization = parsed.pathSegments[0];
-    final String project = parsed.pathSegments[1];
-    final String repository = parsed.pathSegments[2];
-    final String pullRequestId = parsed.pathSegments.last;
+    if (remoteUrl != null && remoteUrl.trim().isNotEmpty) {
+      final parsed = _parseAzureRemoteUrl(remoteUrl);
+      if (parsed != null) {
+        (organization, project, repository) = parsed;
+        _logger.info(
+          'Parsed remote URL: org=$organization, project=$project, repo=$repository',
+        );
+      } else {
+        _logger.warning('Could not parse Azure remote URL: $remoteUrl, falling back to PR URL parsing');
+        final fallback = _parseFromPrUrl(url, pullRequestId);
+        if (fallback == null) {
+          return const Either.left(Failure(message: 'Could not parse PR URL'));
+        }
+        (organization, project, repository) = fallback;
+      }
+    } else {
+      _logger.info('No remote URL provided, parsing from PR URL');
+      final fallback = _parseFromPrUrl(url, pullRequestId);
+      if (fallback == null) {
+        return const Either.left(Failure(message: 'Could not parse PR URL'));
+      }
+      (organization, project, repository) = fallback;
+    }
 
     final apiUrl = Uri.parse(
       'https://dev.azure.com/$organization/$project/_apis/git/repositories/$repository/pullRequests/$pullRequestId?api-version=7.1-preview.1',
@@ -131,5 +147,50 @@ class AzureDevOpsProvider implements GitProvider {
       _logger.severe('Azure request failed for PR #$pullRequestId: $err');
       return Either.left(Failure(message: 'Azure request failed', cause: err));
     }
+  }
+
+  String _extractPrId(String url) {
+    final Uri? parsed = Uri.tryParse(url);
+    if (parsed == null || parsed.pathSegments.isEmpty) return '';
+    return parsed.pathSegments.last;
+  }
+
+  (String organization, String project, String repository)? _parseFromPrUrl(
+    String url,
+    String pullRequestId,
+  ) {
+    final Uri? parsed = Uri.tryParse(url);
+    if (parsed == null || parsed.host != 'dev.azure.com') return null;
+    final segments = parsed.pathSegments;
+    if (segments.length < 4) return null;
+    final org = segments[0];
+    final proj = segments[1];
+    String repo;
+    if (segments[2] == '_git' && segments.length >= 4) {
+      repo = segments[3];
+    } else {
+      repo = segments[2];
+    }
+    return (org, proj, repo);
+  }
+
+  (String organization, String project, String repository)? _parseAzureRemoteUrl(
+    String remoteUrl,
+  ) {
+    final httpMatch = RegExp(
+      r'^https?://[^@]*@?dev\.azure\.com/([^/]+)/([^/]+)/_git/([^/]+?)(?:\.git)?$',
+    ).firstMatch(remoteUrl);
+    if (httpMatch != null) {
+      return (httpMatch.group(1)!, httpMatch.group(2)!, httpMatch.group(3)!);
+    }
+
+    final sshMatch = RegExp(
+      r'^git@ssh\.dev\.azure\.com:v3/([^/]+)/([^/]+)/([^/]+?)(?:\.git)?$',
+    ).firstMatch(remoteUrl);
+    if (sshMatch != null) {
+      return (sshMatch.group(1)!, sshMatch.group(2)!, sshMatch.group(3)!);
+    }
+
+    return null;
   }
 }

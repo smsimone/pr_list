@@ -25,5 +25,6 @@ abstract class GitProvider {
   Future<Either<Failure, ProviderPullRequestInfo>> fetchPullRequestInfo({
     required String url,
     required String pat,
+    String? remoteUrl,
   });
 }
