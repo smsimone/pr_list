@@ -17,6 +17,26 @@ class LocalGitClient implements GitClient {
       workingDirectory.trim().isNotEmpty,
       'workingDirectory must not be empty',
     );
+    _logger.info('git fetch --prune origin in $workingDirectory');
+    try {
+      final fetchResult = await Process.run(
+        'git',
+        ['fetch', '--prune', 'origin'],
+        workingDirectory: workingDirectory,
+        runInShell: true,
+      );
+      if (fetchResult.exitCode != 0) {
+        _logger.warning('git fetch exit ${fetchResult.exitCode}: ${fetchResult.stderr}');
+        return Either.left(
+          Failure(message: 'git fetch failed', cause: fetchResult.stderr),
+        );
+      }
+      _logger.info('git fetch completed (exit 0)');
+    } catch (err) {
+      _logger.severe('git fetch error: $err');
+      return Either.left(Failure(message: 'git fetch error', cause: err));
+    }
+
     _logger.info('git branch -r --contains $commitSha in $workingDirectory');
     try {
       final result = await Process.run(

@@ -24,6 +24,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editPr => 'Edit PR';
 
   @override
+  String editPrNum(String num) {
+    return 'Edit PR #$num';
+  }
+
+  @override
   String get addProject => 'Add project';
 
   @override

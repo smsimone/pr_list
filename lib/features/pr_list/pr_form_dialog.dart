@@ -154,7 +154,11 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
     final projectsState = ref.watch(projectsNotifierProvider);
     final commitSha = widget.existing?.lastCommitSha;
     return AlertDialog(
-      title: Text(widget.existing == null ? _l10n.addPr : _l10n.editPr),
+      title: Text(widget.existing == null
+          ? _l10n.addPr
+          : (widget.existing!.providerPrId != null
+              ? _l10n.editPrNum(widget.existing!.id.toString())
+              : _l10n.editPr)),
       content: SizedBox(
         width: 520,
         child: Form(

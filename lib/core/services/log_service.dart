@@ -28,6 +28,11 @@ class LogService {
     _channel.invokeMethod('openLogWindow', buffer);
   }
 
+  void clearLog() {
+    _buffer.clear();
+    _channel.invokeMethod('clearLogWindow');
+  }
+
   String _formatRecord(LogRecord r) =>
       '${r.level.name}: ${r.time}: ${r.loggerName}: ${r.message}';
 

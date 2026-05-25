@@ -209,6 +209,7 @@ class _PatSettingsDialogState extends State<PatSettingsDialog> {
 
     _logger.info('Credentials saved, closing dialog');
     if (context.mounted) {
+      // ignore: use_build_context_synchronously
       Navigator.of(context).pop();
     }
   }

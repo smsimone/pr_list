@@ -128,6 +128,12 @@ abstract class AppLocalizations {
   /// **'Edit PR'**
   String get editPr;
 
+  /// No description provided for @editPrNum.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit PR #{num}'**
+  String editPrNum(String num);
+
   /// No description provided for @addProject.
   ///
   /// In en, this message translates to:

@@ -4,6 +4,14 @@
   "tabDashboard": "Dashboard",
   "addPr": "Aggiungi PR",
   "editPr": "Modifica PR",
+  "editPrNum": "Modifica PR #{num}",
+  "@editPrNum": {
+    "placeholders": {
+      "num": {
+        "type": "String"
+      }
+    }
+  },
   "addProject": "Aggiungi progetto",
   "editProject": "Modifica progetto",
   "save": "Salva",
