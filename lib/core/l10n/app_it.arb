@@ -61,5 +61,21 @@
   "envMappingPatternLabel": "Suffisso branch",
   "envMappingDefault": "non impostato",
   "genericError": "Si è verificato un errore",
-  "envSettings": "Ambienti"
+  "envSettings": "Ambienti",
+  "updateAvailableTitle": "Aggiornamento disponibile",
+  "updateAvailableBody": "Versione {version} disponibile. Scaricare ora?",
+  "@updateAvailableBody": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDownloading": "Download aggiornamento...",
+  "updateInstalling": "Installazione aggiornamento...",
+  "updateError": "Aggiornamento fallito",
+  "updateErrorUnknown": "Errore sconosciuto",
+  "actionSkip": "Ignora",
+  "actionDownload": "Scarica",
+  "actionClose": "Chiudi"
 }

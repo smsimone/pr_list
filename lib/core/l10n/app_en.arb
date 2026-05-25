@@ -61,5 +61,21 @@
   "envMappingPatternLabel": "Branch suffix",
   "envMappingDefault": "not set",
   "genericError": "An error occurred",
-  "envSettings": "Environments"
+  "envSettings": "Environments",
+  "updateAvailableTitle": "Update available",
+  "updateAvailableBody": "Version {version} is available. Download now?",
+  "@updateAvailableBody": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDownloading": "Downloading update...",
+  "updateInstalling": "Installing update...",
+  "updateError": "Update failed",
+  "updateErrorUnknown": "Unknown error",
+  "actionSkip": "Skip",
+  "actionDownload": "Download",
+  "actionClose": "Close"
 }

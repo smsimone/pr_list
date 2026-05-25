@@ -4,24 +4,49 @@ import 'package:go_router/go_router.dart';
 import 'package:pr_list/core/di/injection_container.dart';
 import 'package:pr_list/core/l10n/app_localizations.dart';
 import 'package:pr_list/core/services/log_service.dart';
+import 'package:pr_list/core/services/update_notifier.dart';
 import 'package:pr_list/features/pr_list/pr_form_dialog.dart';
 import 'package:pr_list/features/pr_list/pr_list_providers.dart';
 import 'package:pr_list/features/projects/project_form_dialog.dart';
 import 'package:pr_list/features/settings/env_mapping_dialog.dart';
 import 'package:pr_list/features/settings/pat_settings_dialog.dart';
+import 'package:pr_list/shared/widgets/update_available_dialog.dart';
 
-class AppScaffold extends ConsumerWidget {
+class AppScaffold extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const AppScaffold({super.key, required this.navigationShell});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppScaffold> createState() => _AppScaffoldState();
+}
+
+class _AppScaffoldState extends ConsumerState<AppScaffold> {
+  @override
+  void initState() {
+    super.initState();
+    ref.read(updateStateProvider.notifier).checkForUpdate();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final currentIndex = navigationShell.currentIndex;
+    final currentIndex = widget.navigationShell.currentIndex;
     final viewMode = ref.watch(prListViewModeProvider);
     final nextRunAsync = ref.watch(schedulerNextRunProvider);
     final isSyncRunning = ref.watch(prSyncServiceProvider).isSyncRunning;
+    ref.listen(updateStateProvider, (_, state) {
+      if (state.status == UpdateStateStatus.available) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const UpdateAvailableDialog(),
+        );
+      }
+      if (state.status == UpdateStateStatus.installing) {
+        Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -76,11 +101,11 @@ class AppScaffold extends ConsumerWidget {
           ),
         ],
       ),
-      body: navigationShell,
+      body: widget.navigationShell,
       floatingActionButton: _fabForTab(currentIndex, context),
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
-        onDestinationSelected: (index) => navigationShell.goBranch(index),
+        onDestinationSelected: (index) => widget.navigationShell.goBranch(index),
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.list_alt),

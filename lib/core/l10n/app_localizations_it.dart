@@ -171,4 +171,33 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get envSettings => 'Ambienti';
+
+  @override
+  String get updateAvailableTitle => 'Aggiornamento disponibile';
+
+  @override
+  String updateAvailableBody(String version) {
+    return 'Versione $version disponibile. Scaricare ora?';
+  }
+
+  @override
+  String get updateDownloading => 'Download aggiornamento...';
+
+  @override
+  String get updateInstalling => 'Installazione aggiornamento...';
+
+  @override
+  String get updateError => 'Aggiornamento fallito';
+
+  @override
+  String get updateErrorUnknown => 'Errore sconosciuto';
+
+  @override
+  String get actionSkip => 'Ignora';
+
+  @override
+  String get actionDownload => 'Scarica';
+
+  @override
+  String get actionClose => 'Chiudi';
 }

@@ -169,4 +169,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get envSettings => 'Environments';
+
+  @override
+  String get updateAvailableTitle => 'Update available';
+
+  @override
+  String updateAvailableBody(String version) {
+    return 'Version $version is available. Download now?';
+  }
+
+  @override
+  String get updateDownloading => 'Downloading update...';
+
+  @override
+  String get updateInstalling => 'Installing update...';
+
+  @override
+  String get updateError => 'Update failed';
+
+  @override
+  String get updateErrorUnknown => 'Unknown error';
+
+  @override
+  String get actionSkip => 'Skip';
+
+  @override
+  String get actionDownload => 'Download';
+
+  @override
+  String get actionClose => 'Close';
 }
