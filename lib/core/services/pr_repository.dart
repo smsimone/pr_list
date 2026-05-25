@@ -124,6 +124,29 @@ class PrRepository {
     }
   }
 
+  Future<Either<Failure, void>> updateTicketStatus({
+    required int id,
+    required String ticketStatus,
+  }) async {
+    assert(id > 0, 'id must be greater than 0');
+    assert(ticketStatus.trim().isNotEmpty, 'ticketStatus must not be empty');
+    try {
+      _logger.info('Updating ticket status for PR #$id: status=$ticketStatus');
+      await (_db.update(_db.pullRequests)..where((t) => t.id.equals(id))).write(
+        PullRequestsCompanion(
+          ticketStatus: Value(ticketStatus),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+      return const Either.right(null);
+    } catch (err) {
+      _logger.severe('Update ticket status for PR #$id failed: $err');
+      return Either.left(
+        Failure(message: 'Update ticket status failed', cause: err),
+      );
+    }
+  }
+
   Future<Either<Failure, void>> setEnvFlags(
     int prId,
     List<int> envMappingIds,

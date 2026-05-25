@@ -129,8 +129,7 @@ class _KanbanPrListState extends ConsumerState<_KanbanPrList> {
         const double gap = 12;
         final laneCount = lanes.length;
         final totalGaps = gap * (laneCount - 1);
-        final idealWidth =
-            (constraints.maxWidth - totalGaps) / laneCount;
+        final idealWidth = (constraints.maxWidth - totalGaps) / laneCount;
         final laneWidth = idealWidth.clamp(240.0, 350.0);
 
         final totalWidth = laneWidth * laneCount + totalGaps;
@@ -159,8 +158,7 @@ class _KanbanPrListState extends ConsumerState<_KanbanPrList> {
                               itemBuilder: (context, index) {
                                 final pr = laneItems[index];
                                 return Padding(
-                                  padding:
-                                      const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.only(bottom: 8),
                                   child: _KanbanPrCard(pr: pr),
                                 );
                               },
@@ -206,7 +204,9 @@ class _KanbanPrCard extends ConsumerWidget {
     final projects = ref.watch(projectsNotifierProvider).items;
     final duplicateIds = ref.watch(duplicatePrIdsProvider);
     final isDuplicate = duplicateIds.contains(pr.id);
-    final project = projects.where((p) => p.alias == pr.projectAlias).firstOrNull;
+    final project = projects
+        .where((p) => p.alias == pr.projectAlias)
+        .firstOrNull;
     final color = project?.color;
     return GestureDetector(
       onTap: () => showDialog(
@@ -226,8 +226,8 @@ class _KanbanPrCard extends ConsumerWidget {
                     isDuplicate
                         ? Icons.warning_amber
                         : (pr.isTicketClosed
-                            ? Icons.check_circle
-                            : Icons.circle_outlined),
+                              ? Icons.check_circle
+                              : Icons.circle_outlined),
                     size: 16,
                     color: isDuplicate
                         ? Colors.amber
@@ -246,10 +246,47 @@ class _KanbanPrCard extends ConsumerWidget {
               if (pr.providerStatus != null &&
                   pr.providerStatus!.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text(
-                  pr.providerStatus!,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: "PR Status: ",
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextSpan(
+                        text: pr.providerStatus!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              if (pr.ticketStatus != null &&
+                  pr.ticketStatus!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: "Ticket status: ",
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextSpan(
+                        text: pr.ticketStatus!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -273,7 +310,9 @@ class _PrCard extends ConsumerWidget {
     final projects = ref.watch(projectsNotifierProvider).items;
     final duplicateIds = ref.watch(duplicatePrIdsProvider);
     final isDuplicate = duplicateIds.contains(pr.id);
-    final project = projects.where((p) => p.alias == pr.projectAlias).firstOrNull;
+    final project = projects
+        .where((p) => p.alias == pr.projectAlias)
+        .firstOrNull;
     final color = project?.color;
     return Card(
       child: ListTile(
@@ -283,7 +322,8 @@ class _PrCard extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 6),
                 child: Container(
-                  width: 10, height: 10,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
                     color: Color(color),
                     shape: BoxShape.circle,
@@ -291,8 +331,7 @@ class _PrCard extends ConsumerWidget {
                 ),
               ),
             Flexible(
-              child: Text(pr.projectAlias,
-                  overflow: TextOverflow.ellipsis),
+              child: Text(pr.projectAlias, overflow: TextOverflow.ellipsis),
             ),
           ],
         ),
@@ -306,8 +345,8 @@ class _PrCard extends ConsumerWidget {
                     isDuplicate
                         ? Icons.warning_amber
                         : (pr.isTicketClosed
-                            ? Icons.check_circle
-                            : Icons.circle_outlined),
+                              ? Icons.check_circle
+                              : Icons.circle_outlined),
                     size: 16,
                     color: isDuplicate
                         ? Colors.amber
@@ -315,20 +354,28 @@ class _PrCard extends ConsumerWidget {
                   ),
                   const SizedBox(width: 4),
                   Flexible(
-                    child: Text('${l10n.jiraTicket}: ${pr.jiraTicket}',
-                        overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      '${l10n.jiraTicket}: ${pr.jiraTicket}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
             if (pr.prLink != null)
-              Text('${l10n.prLink}: ${pr.prLink}',
-                  overflow: TextOverflow.ellipsis),
+              Text(
+                '${l10n.prLink}: ${pr.prLink}',
+                overflow: TextOverflow.ellipsis,
+              ),
             if (pr.providerStatus != null)
-              Text('${l10n.providerStatus}: ${pr.providerStatus}',
-                  overflow: TextOverflow.ellipsis),
+              Text(
+                '${l10n.providerStatus}: ${pr.providerStatus}',
+                overflow: TextOverflow.ellipsis,
+              ),
             if (pr.lastCommitSha != null)
-              Text('${l10n.lastCommit}: ${pr.lastCommitSha}',
-                  overflow: TextOverflow.ellipsis),
+              Text(
+                '${l10n.lastCommit}: ${pr.lastCommitSha}',
+                overflow: TextOverflow.ellipsis,
+              ),
           ],
         ),
         trailing: Row(

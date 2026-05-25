@@ -7,6 +7,7 @@ import 'package:pr_list/core/services/branch_cache_service.dart';
 import 'package:pr_list/core/services/environment_mapping_repository.dart';
 import 'package:pr_list/core/services/git_client.dart';
 import 'package:pr_list/core/services/git_provider.dart';
+import 'package:pr_list/core/services/jira_provider.dart';
 import 'package:pr_list/core/services/local_git_client.dart';
 import 'package:pr_list/core/services/log_service.dart';
 import 'package:pr_list/core/services/pr_repository.dart';
@@ -15,6 +16,8 @@ import 'package:pr_list/core/services/pr_sync_service.dart';
 import 'package:pr_list/core/services/provider_registry.dart';
 import 'package:pr_list/core/services/project_repository.dart';
 import 'package:pr_list/core/services/secure_storage_service.dart';
+import 'package:pr_list/core/services/ticket_provider.dart';
+import 'package:pr_list/core/services/ticket_provider_registry.dart';
 import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/core/utils/failure.dart';
 
@@ -39,6 +42,10 @@ Future<Either<Failure, void>> initDependencies() async {
     getIt.registerLazySingleton<ProviderRegistry>(
       () => ProviderRegistry(<GitProvider>[getIt<GitProvider>()]),
     );
+    getIt.registerLazySingleton<TicketProvider>(JiraProvider.new);
+    getIt.registerLazySingleton<TicketProviderRegistry>(
+      () => TicketProviderRegistry(<TicketProvider>[getIt<TicketProvider>()]),
+    );
     getIt.registerLazySingleton<GitClient>(LocalGitClient.new);
     getIt.registerLazySingleton<BranchCacheService>(
       () => BranchCacheService(getIt<GitClient>()),
@@ -52,6 +59,7 @@ Future<Either<Failure, void>> initDependencies() async {
       () => PrSyncService(
         getIt<PrRepository>(),
         getIt<ProviderRegistry>(),
+        getIt<TicketProviderRegistry>(),
         getIt<GitClient>(),
         getIt<SecureStorageService>(),
         getIt<ProjectRepository>(),

@@ -505,6 +505,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Without ticket'**
   String get ticketStatusWithout;
+
+  /// No description provided for @credentialsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Credentials'**
+  String get credentialsTitle;
+
+  /// No description provided for @serviceName.
+  ///
+  /// In en, this message translates to:
+  /// **'Service'**
+  String get serviceName;
+
+  /// No description provided for @token.
+  ///
+  /// In en, this message translates to:
+  /// **'Token'**
+  String get token;
+
+  /// No description provided for @jiraInstanceUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Instance URL'**
+  String get jiraInstanceUrlLabel;
+
+  /// No description provided for @ticketSyncStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Ticket status'**
+  String get ticketSyncStatus;
 }
 
 class _AppLocalizationsDelegate

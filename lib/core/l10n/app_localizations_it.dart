@@ -218,4 +218,19 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get ticketStatusWithout => 'Senza ticket';
+
+  @override
+  String get credentialsTitle => 'Credenziali';
+
+  @override
+  String get serviceName => 'Servizio';
+
+  @override
+  String get token => 'Token';
+
+  @override
+  String get jiraInstanceUrlLabel => 'URL istanza';
+
+  @override
+  String get ticketSyncStatus => 'Stato ticket';
 }

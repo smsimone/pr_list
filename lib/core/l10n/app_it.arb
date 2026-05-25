@@ -83,5 +83,10 @@
   "ticketStatusAll": "Tutti",
   "ticketStatusOpen": "Aperto",
   "ticketStatusClosed": "Chiuso",
-  "ticketStatusWithout": "Senza ticket"
+  "ticketStatusWithout": "Senza ticket",
+  "credentialsTitle": "Credenziali",
+  "serviceName": "Servizio",
+  "token": "Token",
+  "jiraInstanceUrlLabel": "URL istanza",
+  "ticketSyncStatus": "Stato ticket"
 }

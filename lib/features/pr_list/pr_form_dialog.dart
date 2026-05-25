@@ -267,6 +267,17 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                 title: Text(_l10n.ticketClosed),
                 controlAffinity: ListTileControlAffinity.leading,
               ),
+              if (widget.existing?.ticketStatus != null &&
+                  widget.existing!.ticketStatus!.trim().isNotEmpty) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: TextEditingController(
+                    text: '${_l10n.ticketSyncStatus}: ${widget.existing!.ticketStatus}',
+                  ),
+                  readOnly: true,
+                  decoration: const InputDecoration(isDense: true),
+                ),
+              ],
               if (commitSha != null && commitSha.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 TextField(

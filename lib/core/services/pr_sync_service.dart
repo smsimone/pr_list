@@ -9,6 +9,7 @@ import 'package:pr_list/core/services/pr_repository.dart';
 import 'package:pr_list/core/services/provider_registry.dart';
 import 'package:pr_list/core/services/project_repository.dart';
 import 'package:pr_list/core/services/secure_storage_service.dart';
+import 'package:pr_list/core/services/ticket_provider_registry.dart';
 import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/core/utils/failure.dart';
 
@@ -17,6 +18,7 @@ class PrSyncService {
 
   final PrRepository _repository;
   final ProviderRegistry _providerRegistry;
+  final TicketProviderRegistry _ticketProviderRegistry;
   final GitClient _gitClient;
   final SecureStorageService _secureStorage;
   final ProjectRepository _projectRepository;
@@ -32,6 +34,7 @@ class PrSyncService {
   PrSyncService(
     this._repository,
     this._providerRegistry,
+    this._ticketProviderRegistry,
     this._gitClient,
     this._secureStorage,
     this._projectRepository,
@@ -129,6 +132,12 @@ class PrSyncService {
         } else {
           _logger.info('$prLabel: status=$updatedStatus, skipping environment check');
         }
+
+        if (pr.jiraTicket != null && pr.jiraTicket!.trim().isNotEmpty) {
+          _logger.info('$prLabel: syncing ticket status...');
+          await _syncTicketStatus(pr.id, pr.jiraTicket!);
+        }
+
         ok++;
       }
     } finally {
@@ -252,6 +261,54 @@ class PrSyncService {
     final matchedIds = _resolveMatchedMappingIds(branches, mappings);
     _logger.info('PR #$prId: matched env mapping ids: $matchedIds');
     await _repository.setEnvFlags(prId, matchedIds);
+  }
+
+  Future<void> _syncTicketStatus(int prId, String ticketUrl) async {
+    final provider = _ticketProviderRegistry.match(ticketUrl);
+    if (provider == null) {
+      _logger.warning('PR #$prId: no ticket provider supports URL $ticketUrl');
+      return;
+    }
+    _logger.info('PR #$prId: matched ticket provider ${provider.name}');
+
+    String? pat;
+    String? instanceUrl;
+    String? email;
+
+    if (provider.name == 'jira') {
+      final patResult = await _secureStorage.getJiraPat();
+      if (patResult.isRight) {
+        pat = patResult.right;
+      }
+      final urlResult = await _secureStorage.getJiraInstanceUrl();
+      if (urlResult.isRight) {
+        instanceUrl = urlResult.right;
+      }
+      final emailResult = await _secureStorage.getJiraEmail();
+      if (emailResult.isRight) {
+        email = emailResult.right;
+      }
+    }
+
+    if (pat == null || pat.trim().isEmpty) {
+      _logger.warning('PR #$prId: PAT not configured for ${provider.name}, skipping ticket sync');
+      return;
+    }
+
+    final infoResult = await provider.fetchTicketInfo(
+      url: ticketUrl,
+      pat: pat,
+      instanceUrl: instanceUrl,
+      email: email,
+    );
+    if (infoResult.isLeft) {
+      _logger.warning('PR #$prId: ticket sync failed: ${infoResult.left.message}');
+      return;
+    }
+
+    final info = infoResult.right;
+    _logger.info('PR #$prId: ticket status -> ${info.status} (closed=${info.isClosed})');
+    await _repository.updateTicketStatus(id: prId, ticketStatus: info.status);
   }
 
   Future<String?> _loadProviderStatus(int id) async {

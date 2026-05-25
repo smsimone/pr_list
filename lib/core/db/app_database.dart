@@ -19,6 +19,7 @@ class PullRequests extends Table {
   TextColumn get lastCommitSha => text().nullable()();
   BoolColumn get isTicketClosed =>
       boolean().withDefault(const Constant(false))();
+  TextColumn get ticketStatus => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 }
@@ -120,6 +121,21 @@ class AppDatabase extends _$AppDatabase {
         await m.deleteTable('pull_requests');
         await m.createTable(pullRequests);
         await m.createTable(prEnvFlags);
+      },
+    ),
+    _MigrationStep(
+      version: 6,
+      checksum: '20250525_ticket_status',
+      run: (Migrator m) async {
+        try {
+          await m.addColumn(pullRequests, pullRequests.ticketStatus);
+        } catch (e) {
+          if (e.toString().contains('duplicate column name')) {
+            _logger.warning('Column "ticketStatus" already exists, skipping migration v6');
+          } else {
+            rethrow;
+          }
+        }
       },
     ),
   ];
