@@ -469,6 +469,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get actionClose;
+
+  /// No description provided for @filterProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by project'**
+  String get filterProject;
+
+  /// No description provided for @filterTicketStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Ticket status'**
+  String get filterTicketStatus;
+
+  /// No description provided for @ticketStatusAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get ticketStatusAll;
+
+  /// No description provided for @ticketStatusOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get ticketStatusOpen;
+
+  /// No description provided for @ticketStatusClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get ticketStatusClosed;
+
+  /// No description provided for @ticketStatusWithout.
+  ///
+  /// In en, this message translates to:
+  /// **'Without ticket'**
+  String get ticketStatusWithout;
 }
 
 class _AppLocalizationsDelegate

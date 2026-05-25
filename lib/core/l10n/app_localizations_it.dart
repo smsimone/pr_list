@@ -200,4 +200,22 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get actionClose => 'Chiudi';
+
+  @override
+  String get filterProject => 'Filtra per progetto';
+
+  @override
+  String get filterTicketStatus => 'Stato ticket';
+
+  @override
+  String get ticketStatusAll => 'Tutti';
+
+  @override
+  String get ticketStatusOpen => 'Aperto';
+
+  @override
+  String get ticketStatusClosed => 'Chiuso';
+
+  @override
+  String get ticketStatusWithout => 'Senza ticket';
 }

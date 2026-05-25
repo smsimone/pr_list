@@ -18,11 +18,12 @@ class PrListPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(prListNotifierProvider);
     final viewMode = ref.watch(prListViewModeProvider);
+    final filteredPrs = ref.watch(filteredPrListProvider);
 
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (state.items.isEmpty) {
+    if (filteredPrs.isEmpty) {
       return EmptyState(message: l10n.emptyState);
     }
 
@@ -30,14 +31,14 @@ class PrListPage extends ConsumerWidget {
       return ResponsiveContainer(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: _GroupedPrList(prs: state.items),
+          child: _GroupedPrList(prs: filteredPrs),
         ),
       );
     }
 
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: _KanbanPrList(prs: state.items),
+      child: _KanbanPrList(prs: filteredPrs),
     );
   }
 }
@@ -203,6 +204,8 @@ class _KanbanPrCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final projects = ref.watch(projectsNotifierProvider).items;
+    final duplicateIds = ref.watch(duplicatePrIdsProvider);
+    final isDuplicate = duplicateIds.contains(pr.id);
     final project = projects.where((p) => p.alias == pr.projectAlias).firstOrNull;
     final color = project?.color;
     return GestureDetector(
@@ -220,11 +223,15 @@ class _KanbanPrCard extends ConsumerWidget {
               Row(
                 children: [
                   Icon(
-                    pr.isTicketClosed
-                        ? Icons.check_circle
-                        : Icons.circle_outlined,
+                    isDuplicate
+                        ? Icons.warning_amber
+                        : (pr.isTicketClosed
+                            ? Icons.check_circle
+                            : Icons.circle_outlined),
                     size: 16,
-                    color: pr.isTicketClosed ? Colors.green : Colors.orange,
+                    color: isDuplicate
+                        ? Colors.amber
+                        : (pr.isTicketClosed ? Colors.green : Colors.orange),
                   ),
                   const SizedBox(width: 6),
                   Flexible(
@@ -264,6 +271,8 @@ class _PrCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final projects = ref.watch(projectsNotifierProvider).items;
+    final duplicateIds = ref.watch(duplicatePrIdsProvider);
+    final isDuplicate = duplicateIds.contains(pr.id);
     final project = projects.where((p) => p.alias == pr.projectAlias).firstOrNull;
     final color = project?.color;
     return Card(
@@ -294,11 +303,15 @@ class _PrCard extends ConsumerWidget {
               Row(
                 children: [
                   Icon(
-                    pr.isTicketClosed
-                        ? Icons.check_circle
-                        : Icons.circle_outlined,
+                    isDuplicate
+                        ? Icons.warning_amber
+                        : (pr.isTicketClosed
+                            ? Icons.check_circle
+                            : Icons.circle_outlined),
                     size: 16,
-                    color: pr.isTicketClosed ? Colors.green : Colors.orange,
+                    color: isDuplicate
+                        ? Colors.amber
+                        : (pr.isTicketClosed ? Colors.green : Colors.orange),
                   ),
                   const SizedBox(width: 4),
                   Flexible(

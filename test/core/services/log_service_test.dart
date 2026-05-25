@@ -26,7 +26,7 @@ void main() {
 
   tearDown(() async {
     service.dispose();
-    await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
   });
 

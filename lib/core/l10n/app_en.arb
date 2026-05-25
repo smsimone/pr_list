@@ -77,5 +77,11 @@
   "updateErrorUnknown": "Unknown error",
   "actionSkip": "Skip",
   "actionDownload": "Download",
-  "actionClose": "Close"
+  "actionClose": "Close",
+  "filterProject": "Filter by project",
+  "filterTicketStatus": "Ticket status",
+  "ticketStatusAll": "All",
+  "ticketStatusOpen": "Open",
+  "ticketStatusClosed": "Closed",
+  "ticketStatusWithout": "Without ticket"
 }
