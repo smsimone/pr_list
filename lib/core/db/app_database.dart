@@ -96,7 +96,17 @@ class AppDatabase extends _$AppDatabase {
     _MigrationStep(
       version: 3,
       checksum: '20250523_project_color',
-      run: (Migrator m) async => m.addColumn(projects, projects.color),
+      run: (Migrator m) async {
+        try {
+          await m.addColumn(projects, projects.color);
+        } catch (e) {
+          if (e.toString().contains('duplicate column name')) {
+            _logger.warning('Column "color" already exists, skipping migration v3');
+          } else {
+            rethrow;
+          }
+        }
+      },
     ),
     _MigrationStep(
       version: 4,
