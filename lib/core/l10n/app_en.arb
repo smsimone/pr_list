@@ -46,6 +46,17 @@
       }
     }
   },
+  "syncInProgress": "Sync in progress {minutes}m {seconds}s",
+  "@syncInProgress": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "delete": "Delete",
   "deletePrTitle": "Delete PR?",
   "deletePrMessage": "This action cannot be undone.",

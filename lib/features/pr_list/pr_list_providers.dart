@@ -62,6 +62,11 @@ final schedulerNextRunProvider = StreamProvider<DateTime?>((ref) {
   return syncService.nextRunStream;
 });
 
+final syncRunningSinceProvider = StreamProvider<Duration?>((ref) {
+  final syncService = ref.watch(prSyncServiceProvider);
+  return syncService.syncRunningSinceStream;
+});
+
 final triggerPrSyncProvider = Provider<Future<void> Function()>(
   (ref) =>
       () async => ref.read(prSyncServiceProvider).triggerNowAndReset(),

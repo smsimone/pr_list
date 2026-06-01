@@ -278,6 +278,12 @@ abstract class AppLocalizations {
   /// **'Next run in {minutes}m {seconds}s'**
   String schedulerCountdown(int minutes, int seconds);
 
+  /// No description provided for @syncInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync in progress {minutes}m {seconds}s'**
+  String syncInProgress(int minutes, int seconds);
+
   /// No description provided for @delete.
   ///
   /// In en, this message translates to:

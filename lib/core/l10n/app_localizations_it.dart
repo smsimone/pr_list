@@ -105,6 +105,11 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String syncInProgress(int minutes, int seconds) {
+    return 'Sync in corso ${minutes}m ${seconds}s';
+  }
+
+  @override
   String get delete => 'Elimina';
 
   @override

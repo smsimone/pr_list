@@ -34,6 +34,10 @@ class PrSyncService {
   final StreamController<DateTime?> _nextRunController =
       StreamController<DateTime?>.broadcast();
   bool _isSyncRunning = false;
+  DateTime? _syncStartedAt;
+  Timer? _syncCountdownTimer;
+  final StreamController<Duration?> _syncRunningSinceController =
+      StreamController<Duration?>.broadcast();
 
   PrSyncService(
     this._repository,
@@ -49,6 +53,8 @@ class PrSyncService {
   Stream<DateTime?> get nextRunStream => _nextRunController.stream;
   DateTime? get nextRunAt => _nextRunAt;
   bool get isSyncRunning => _isSyncRunning;
+  Stream<Duration?> get syncRunningSinceStream =>
+      _syncRunningSinceController.stream;
 
   void start() {
     _schedulePeriodicSync();
@@ -59,6 +65,10 @@ class PrSyncService {
     _pollingTimer = null;
     _countdownTickTimer?.cancel();
     _countdownTickTimer = null;
+    _syncCountdownTimer?.cancel();
+    _syncCountdownTimer = null;
+    _syncStartedAt = null;
+    _syncRunningSinceController.add(null);
     _nextRunAt = null;
     _nextRunController.add(null);
   }
@@ -67,13 +77,14 @@ class PrSyncService {
     if (_isSyncRunning) {
       return;
     }
+    _pollingTimer?.cancel();
+    _countdownTickTimer?.cancel();
+    _nextRunAt = null;
+    _nextRunController.add(null);
     await _syncAll();
     _schedulePeriodicSync();
   }
 
-  /// Triggers environment verification for a single PR by its [prId].
-  /// Can be called manually (e.g. from the edit dialog) and respects the
-  /// in-progress guard.
   Future<Either<Failure, void>> verifyEnvironmentsForPr(int prId) async {
     if (_isSyncRunning) {
       return const Either.left(Failure(message: 'Sync already in progress'));
@@ -83,7 +94,7 @@ class PrSyncService {
       final prResult = await _repository.getById(prId);
       if (prResult.isLeft || prResult.right == null) {
         return Either.left(
-          Failure(message: 'PR #$prId not found'),
+          Failure(message: '[PR#$prId] not found'),
         );
       }
       final pr = prResult.right!;
@@ -103,6 +114,12 @@ class PrSyncService {
       return;
     }
     _isSyncRunning = true;
+    _syncStartedAt = DateTime.now();
+    _syncCountdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _syncRunningSinceController
+          .add(DateTime.now().difference(_syncStartedAt!));
+    });
+    _syncRunningSinceController.add(Duration.zero);
     final stopwatch = Stopwatch()..start();
     int ok = 0, errors = 0, skipped = 0;
     try {
@@ -148,6 +165,10 @@ class PrSyncService {
       }
     } finally {
       _isSyncRunning = false;
+      _syncCountdownTimer?.cancel();
+      _syncCountdownTimer = null;
+      _syncStartedAt = null;
+      _syncRunningSinceController.add(null);
       final elapsed = stopwatch.elapsedMilliseconds;
       _logger.info(
         'PR sync finished: $ok OK, $errors errors, $skipped skipped in ${elapsed}ms',
@@ -156,7 +177,7 @@ class PrSyncService {
   }
 
   Future<_SyncResult> _syncOnePr(PullRequest pr, String pat) async {
-    final prLabel = 'PR #${pr.id} @ ${pr.projectAlias}';
+    final prLabel = '[PR#${pr.id}]';
     try {
       if (pr.prLink == null || pr.prLink!.trim().isEmpty) {
         _logger.info('$prLabel: no PR link, skipping');
@@ -222,7 +243,7 @@ class PrSyncService {
     GitProvider provider,
     String pat,
   ) async {
-    final prLabel = 'PR #${pr.id}';
+    final prLabel = '[PR#${pr.id}]';
     _logger.info('$prLabel: calling ${provider.name} API...');
 
     String? remoteUrl;
@@ -230,7 +251,10 @@ class PrSyncService {
       final projectResult = await _projectRepository.getByAlias(pr.projectAlias);
       if (projectResult.isRight && projectResult.right != null) {
         final path = projectResult.right!.path;
-        final remoteResult = await _gitClient.getRemoteUrl(workingDirectory: path);
+        final remoteResult = await _gitClient.getRemoteUrl(
+          workingDirectory: path,
+          prId: pr.id.toString(),
+        );
         if (remoteResult.isRight) {
           remoteUrl = remoteResult.right;
           _logger.info('$prLabel: resolved remote URL: $remoteUrl');
@@ -274,31 +298,26 @@ class PrSyncService {
     String? lastMergeCommitSha,
     String? workingDirectory,
   ) async {
+    final prLabel = '[PR#$prId]';
     if (workingDirectory == null || workingDirectory.trim().isEmpty) {
-      _logger.warning('PR #$prId: missing working directory for git command');
+      _logger.warning('$prLabel: missing working directory for git command');
       return;
     }
 
-    // Determine which SHA to use for branch detection.
-    // Prefer the merge commit SHA (more reliable for cherry-pick detection),
-    // fall back to the source commit SHA.
     final targetSha = (lastMergeCommitSha != null &&
             lastMergeCommitSha.trim().isNotEmpty)
         ? lastMergeCommitSha
         : lastCommitSha;
     if (targetSha == null || targetSha.trim().isEmpty) {
-      _logger.info('PR #$prId: no commit SHA, skipping environment check');
+      _logger.info('$prLabel: no commit SHA, skipping environment check');
       return;
     }
 
     _logger.info(
-      'PR #$prId: checking branches for $targetSha '
+      '$prLabel: checking branches for $targetSha '
       '(source=$lastCommitSha, merge=$lastMergeCommitSha) in $workingDirectory',
     );
 
-    // Collect multiple candidate SHAs: the merge commit SHA is preferred,
-    // but the source commit SHA is also tried as fallback because a cherry-pick
-    // onto another branch may reference either commit.
     final candidateShas = <String>{targetSha};
     if (lastCommitSha != null &&
         lastCommitSha.trim().isNotEmpty &&
@@ -310,7 +329,7 @@ class PrSyncService {
     List<EnvironmentMapping> mappings;
     if (envMappingsResult.isLeft) {
       _logger.warning(
-        'PR #$prId: failed to load env mappings, using defaults',
+        '$prLabel: failed to load env mappings, using defaults',
       );
       mappings = _defaultMappings();
     } else {
@@ -326,12 +345,12 @@ class PrSyncService {
     String? baseRef;
 
     for (final candidateSha in candidateShas) {
-      _logger.info('PR #$prId: trying candidate SHA $candidateSha');
+      _logger.info('$prLabel: trying candidate SHA $candidateSha');
 
-      // Step 1: fast check — direct commit ancestry
       final branchesResult = await _gitClient.branchesContainingCommit(
         candidateSha,
         workingDirectory: workingDirectory,
+        prId: prId.toString(),
       );
       if (branchesResult.isRight) {
         allBranches.addAll(branchesResult.right);
@@ -340,8 +359,6 @@ class PrSyncService {
         }
       }
 
-      // Step 2: patch-id check — detect cherry-picked commits
-      // Only run on branches not already found by any previous SHA
       final normalizedFound = allBranches
           .map((b) => b.replaceFirst(RegExp(r'^(remotes/)?origin/'), ''))
           .toSet();
@@ -352,12 +369,11 @@ class PrSyncService {
           .toList();
 
       if (branchesToCheck.isEmpty) {
-        // All environment branches already found — stop early
         break;
       }
 
       _logger.info(
-        'PR #$prId: running patch-id check for branches: $branchesToCheck '
+        '$prLabel: running patch-id check for branches: $branchesToCheck '
         '(baseRef=$baseRef)',
       );
       final patchResult = await _gitClient.branchesContainingPatchId(
@@ -365,12 +381,12 @@ class PrSyncService {
         workingDirectory: workingDirectory,
         onlyBranches: branchesToCheck,
         baseRef: baseRef,
+        prId: prId.toString(),
       );
       if (patchResult.isRight) {
         allBranches.addAll(patchResult.right);
       }
 
-      // Step 3: message grep — search by commit message subject / issue ID
       final normalizedFound2 = allBranches
           .map((b) => b.replaceFirst(RegExp(r'^(remotes/)?origin/'), ''))
           .toSet();
@@ -382,19 +398,19 @@ class PrSyncService {
 
       if (branchesToCheck2.isNotEmpty) {
         _logger.info(
-          'PR #$prId: running message-grep for branches: $branchesToCheck2',
+          '$prLabel: running message-grep for branches: $branchesToCheck2',
         );
         final msgResult = await _gitClient.branchesContainingMessage(
           candidateSha,
           workingDirectory: workingDirectory,
           onlyBranches: branchesToCheck2,
+          prId: prId.toString(),
         );
         if (msgResult.isRight) {
           allBranches.addAll(msgResult.right);
         }
       }
 
-      // Step 4: pickaxe — search by unique code strings (last resort)
       final normalizedFound3 = allBranches
           .map((b) => b.replaceFirst(RegExp(r'^(remotes/)?origin/'), ''))
           .toSet();
@@ -406,12 +422,13 @@ class PrSyncService {
 
       if (branchesToCheck3.isNotEmpty) {
         _logger.info(
-          'PR #$prId: running pickaxe for branches: $branchesToCheck3',
+          '$prLabel: running pickaxe for branches: $branchesToCheck3',
         );
         final stringResult = await _gitClient.branchesContainingString(
           candidateSha,
           workingDirectory: workingDirectory,
           onlyBranches: branchesToCheck3,
+          prId: prId.toString(),
         );
         if (stringResult.isRight) {
           allBranches.addAll(stringResult.right);
@@ -420,7 +437,7 @@ class PrSyncService {
     }
 
     _logger.info(
-      'PR #$prId: loaded ${mappings.length} env mapping(s)',
+      '$prLabel: loaded ${mappings.length} env mapping(s)',
     );
     if (mappings.isNotEmpty) {
       for (final m in mappings) {
@@ -430,19 +447,20 @@ class PrSyncService {
       }
     }
 
-    _logger.info('PR #$prId: branches: $allBranches');
+    _logger.info('$prLabel: branches: $allBranches');
     final matchedIds = _resolveMatchedMappingIds(allBranches.toList(), mappings);
-    _logger.info('PR #$prId: matched env mapping ids: $matchedIds');
+    _logger.info('$prLabel: matched env mapping ids: $matchedIds');
     await _repository.setEnvFlags(prId, matchedIds);
   }
 
   Future<void> _syncTicketStatus(int prId, String ticketUrl) async {
+    final prLabel = '[PR#$prId]';
     final provider = _ticketProviderRegistry.match(ticketUrl);
     if (provider == null) {
-      _logger.warning('PR #$prId: no ticket provider supports URL $ticketUrl');
+      _logger.warning('$prLabel: no ticket provider supports URL $ticketUrl');
       return;
     }
-    _logger.info('PR #$prId: matched ticket provider ${provider.name}');
+    _logger.info('$prLabel: matched ticket provider ${provider.name}');
 
     String? pat;
     String? instanceUrl;
@@ -464,7 +482,7 @@ class PrSyncService {
     }
 
     if (pat == null || pat.trim().isEmpty) {
-      _logger.warning('PR #$prId: PAT not configured for ${provider.name}, skipping ticket sync');
+      _logger.warning('$prLabel: PAT not configured for ${provider.name}, skipping ticket sync');
       return;
     }
 
@@ -475,12 +493,12 @@ class PrSyncService {
       email: email,
     );
     if (infoResult.isLeft) {
-      _logger.warning('PR #$prId: ticket sync failed: ${infoResult.left.message}');
+      _logger.warning('$prLabel: ticket sync failed: ${infoResult.left.message}');
       return;
     }
 
     final info = infoResult.right;
-    _logger.info('PR #$prId: ticket status -> ${info.status} (closed=${info.isClosed})');
+    _logger.info('$prLabel: ticket status -> ${info.status} (closed=${info.isClosed})');
     await _repository.updateTicketStatus(id: prId, ticketStatus: info.status);
   }
 
@@ -578,9 +596,6 @@ class PrSyncService {
     return normalized.endsWith('/$pattern') || normalized == pattern;
   }
 
-  /// Sanitizes a branch ref extracted from `git branch -r` output.
-  /// Handles entries like `origin/HEAD -> origin/develop` by returning the
-  /// last ref after ` -> `, or the ref itself if no arrow is present.
   String _sanitizeBaseRef(String ref) {
     final parts = ref.split(' -> ');
     return parts.last.trim();

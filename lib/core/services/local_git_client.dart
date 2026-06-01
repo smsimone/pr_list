@@ -8,17 +8,23 @@ import 'package:pr_list/core/utils/failure.dart';
 
 class LocalGitClient implements GitClient {
   final _logger = Logger('LocalGitClient');
+
+  String _logPrefix(String? prId) =>
+      prId != null ? '[PR#$prId] ' : '';
+
   @override
   Future<Either<Failure, List<String>>> branchesContainingCommit(
     String commitSha, {
     required String workingDirectory,
+    String? prId,
   }) async {
+    final p = _logPrefix(prId);
     assert(commitSha.trim().isNotEmpty, 'commitSha must not be empty');
     assert(
       workingDirectory.trim().isNotEmpty,
       'workingDirectory must not be empty',
     );
-    _logger.info('git fetch --prune origin in $workingDirectory');
+    _logger.info('${p}git fetch --prune origin in $workingDirectory');
     try {
       final fetchResult = await Process.run(
         'git',
@@ -27,18 +33,18 @@ class LocalGitClient implements GitClient {
         runInShell: true,
       );
       if (fetchResult.exitCode != 0) {
-        _logger.warning('git fetch exit ${fetchResult.exitCode}: ${fetchResult.stderr}');
+        _logger.warning('${p}git fetch exit ${fetchResult.exitCode}: ${fetchResult.stderr}');
         return Either.left(
           Failure(message: 'git fetch failed', cause: fetchResult.stderr),
         );
       }
-      _logger.info('git fetch completed (exit 0)');
+      _logger.info('${p}git fetch completed (exit 0)');
     } catch (err) {
-      _logger.severe('git fetch error: $err');
+      _logger.severe('${p}git fetch error: $err');
       return Either.left(Failure(message: 'git fetch error', cause: err));
     }
 
-    _logger.info('git branch -r --contains $commitSha in $workingDirectory');
+    _logger.info('${p}git branch -r --contains $commitSha in $workingDirectory');
     try {
       final result = await Process.run(
         'git',
@@ -47,7 +53,7 @@ class LocalGitClient implements GitClient {
         runInShell: true,
       );
       if (result.exitCode != 0) {
-        _logger.warning('git exit ${result.exitCode}: ${result.stderr}');
+        _logger.warning('${p}git exit ${result.exitCode}: ${result.stderr}');
         return Either.left(
           Failure(message: 'git command failed', cause: result.stderr),
         );
@@ -58,10 +64,10 @@ class LocalGitClient implements GitClient {
           .map((line) => line.trim())
           .where((line) => line.isNotEmpty)
           .toList();
-      _logger.info('git completed (exit 0): ${branches.length} branch(es)');
+      _logger.info('${p}git completed (exit 0): ${branches.length} branch(es)');
       return Either.right(branches);
     } catch (err) {
-      _logger.severe('git command error: $err');
+      _logger.severe('${p}git command error: $err');
       return Either.left(Failure(message: 'git command error', cause: err));
     }
   }
@@ -72,7 +78,9 @@ class LocalGitClient implements GitClient {
     required String workingDirectory,
     List<String>? onlyBranches,
     String? baseRef,
+    String? prId,
   }) async {
+    final p = _logPrefix(prId);
     assert(commitSha.trim().isNotEmpty, 'commitSha must not be empty');
     assert(
       workingDirectory.trim().isNotEmpty,
@@ -80,19 +88,17 @@ class LocalGitClient implements GitClient {
     );
 
     if (onlyBranches == null || onlyBranches.isEmpty) {
-      _logger.info('No branches to check for patch-id, skipping');
+      _logger.info('${p}No branches to check for patch-id, skipping');
       return Either.right([]);
     }
 
-    // Step 1: fast content-match for ALL branches in parallel
-    // This detects ported changes regardless of workflow (cherry-pick, squash merge, etc.)
-    _logger.info('content-match: checking $onlyBranches for $commitSha');
+    _logger.info('${p}content-match: checking $onlyBranches for $commitSha');
     final contentFutures = onlyBranches.map((branch) async {
       final branchRef = 'origin/$branch';
       final match = await _branchHasMatchingContent(
-        branchRef, commitSha, workingDirectory,
+        branchRef, commitSha, workingDirectory, prId: prId,
       );
-      _logger.info('content-match for $commitSha on $branchRef -> $match');
+      _logger.info('${p}content-match for $commitSha on $branchRef -> $match');
       return (branch, match);
     });
     final contentResults = await Future.wait(contentFutures.toList());
@@ -102,22 +108,21 @@ class LocalGitClient implements GitClient {
       if (match) results.add(branch);
     }
 
-    // Step 2: for branches not found by content match, try patch-id + commit message
     final unmatched = onlyBranches
         .where((b) => !results.contains(b))
         .toList();
 
     if (unmatched.isNotEmpty) {
       _logger.info(
-        'content-match unmatched branches: $unmatched, computing patch-id for $commitSha',
+        '${p}content-match unmatched branches: $unmatched, computing patch-id for $commitSha',
       );
-      final patchId = await _computePatchId(commitSha, workingDirectory);
+      final patchId = await _computePatchId(commitSha, workingDirectory, prId: prId);
       if (patchId != null) {
         for (final branch in unmatched) {
           final branchRef = 'origin/$branch';
           final found = await _checkBranchForPatchIdSlow(
             patchId, branchRef, commitSha,
-            baseRef: baseRef, workingDirectory: workingDirectory,
+            baseRef: baseRef, workingDirectory: workingDirectory, prId: prId,
           );
           if (found) results.add(branch);
         }
@@ -125,7 +130,7 @@ class LocalGitClient implements GitClient {
     }
 
     _logger.info(
-      'patch-id check for $commitSha -> ${results.length} branch(es): $results',
+      '${p}patch-id check for $commitSha -> ${results.length} branch(es): $results',
     );
     return Either.right(results.toList());
   }
@@ -135,7 +140,9 @@ class LocalGitClient implements GitClient {
     String commitSha, {
     required String workingDirectory,
     List<String>? onlyBranches,
+    String? prId,
   }) async {
+    final p = _logPrefix(prId);
     assert(commitSha.trim().isNotEmpty, 'commitSha must not be empty');
     assert(
       workingDirectory.trim().isNotEmpty,
@@ -165,7 +172,7 @@ class LocalGitClient implements GitClient {
     final issueId = issueIdMatch?.group(0);
 
     _logger.info(
-      'message-grep for $commitSha: subject="$subject", issueId=$issueId'
+      '$p message-grep for $commitSha: subject="$subject", issueId=$issueId'
       ', branches=$onlyBranches',
     );
 
@@ -196,19 +203,19 @@ class LocalGitClient implements GitClient {
           if (result.exitCode == 0 &&
               result.stdout.toString().trim().isNotEmpty) {
             _logger.info(
-              'message-grep match for $branchRef with pattern "$pattern"',
+              '$p message-grep match for $branchRef with pattern "$pattern"',
             );
             results.add(branch);
             break;
           }
         } catch (err) {
-          _logger.warning('message-grep failed for $branchRef: $err');
+          _logger.warning('$p message-grep failed for $branchRef: $err');
         }
       }
     }
 
     _logger.info(
-      'message-grep for $commitSha -> ${results.length} branch(es): $results',
+      '$p message-grep for $commitSha -> ${results.length} branch(es): $results',
     );
     return Either.right(results.toList());
   }
@@ -219,7 +226,9 @@ class LocalGitClient implements GitClient {
     required String workingDirectory,
     List<String>? onlyBranches,
     List<String>? searchStrings,
+    String? prId,
   }) async {
+    final p = _logPrefix(prId);
     assert(commitSha.trim().isNotEmpty, 'commitSha must not be empty');
     assert(
       workingDirectory.trim().isNotEmpty,
@@ -231,14 +240,14 @@ class LocalGitClient implements GitClient {
     }
 
     final strings = searchStrings ??
-        await _extractSearchStrings(commitSha, workingDirectory);
+        await _extractSearchStrings(commitSha, workingDirectory, prId: prId);
     if (strings.isEmpty) {
-      _logger.info('no search strings for $commitSha, skipping pickaxe');
+      _logger.info('$p no search strings for $commitSha, skipping pickaxe');
       return Either.right([]);
     }
 
     _logger.info(
-      'pickaxe for $commitSha: ${strings.length} string(s) on '
+      '$p pickaxe for $commitSha: ${strings.length} string(s) on '
       '${onlyBranches.length} branch(es): $strings',
     );
 
@@ -263,30 +272,29 @@ class LocalGitClient implements GitClient {
           if (result.exitCode == 0 &&
               result.stdout.toString().trim().isNotEmpty) {
             _logger.info(
-              'pickaxe match for $branchRef with "$searchString"',
+              '$p pickaxe match for $branchRef with "$searchString"',
             );
             results.add(branch);
             break;
           }
         } catch (err) {
-          _logger.warning('pickaxe failed for $branchRef: $err');
+          _logger.warning('$p pickaxe failed for $branchRef: $err');
         }
       }
     }
 
     _logger.info(
-      'pickaxe for $commitSha -> ${results.length} branch(es): $results',
+      '$p pickaxe for $commitSha -> ${results.length} branch(es): $results',
     );
     return Either.right(results.toList());
   }
 
-  /// Extracts up to 3 unique code strings from the diff of [commitSha] to use
-  /// as search terms for `git log -S` (pickaxe). Prioritizes quoted strings,
-  /// then long identifiers from added lines.
   Future<List<String>> _extractSearchStrings(
     String commitSha,
-    String workingDirectory,
-  ) async {
+    String workingDirectory, {
+    String? prId,
+  }) async {
+    final p = _logPrefix(prId);
     try {
       final result = await Process.run(
         'git',
@@ -306,14 +314,12 @@ class LocalGitClient implements GitClient {
 
         final content = line.substring(1);
 
-        // Extract double-quoted strings
         for (final m
             in RegExp(r'"([^"]*)"').allMatches(content)) {
           final q = m.group(1)!.trim();
           if (q.length >= 10) strings.add(q);
         }
 
-        // Extract single-quoted strings
         for (final m
             in RegExp(r"'([^']*)'").allMatches(content)) {
           final q = m.group(1)!.trim();
@@ -321,7 +327,6 @@ class LocalGitClient implements GitClient {
         }
       }
 
-      // If no quoted strings found, use long identifiers from added lines
       if (strings.isEmpty) {
         for (final line in lines) {
           if (!line.startsWith('+')) continue;
@@ -345,17 +350,17 @@ class LocalGitClient implements GitClient {
       resultList.sort((a, b) => b.length.compareTo(a.length));
       return resultList.take(3).toList();
     } catch (err) {
-      _logger.warning('extractSearchStrings error: $err');
+      _logger.warning('$p extractSearchStrings error: $err');
       return [];
     }
   }
 
-  /// Computes the patch-id for the given commit SHA.
-  /// Returns null on failure.
   Future<String?> _computePatchId(
     String commitSha,
-    String workingDirectory,
-  ) async {
+    String workingDirectory, {
+    String? prId,
+  }) async {
+    final p = _logPrefix(prId);
     try {
       final showProcess = await Process.start(
         'git',
@@ -377,7 +382,7 @@ class LocalGitClient implements GitClient {
 
       if (showExitCode != 0 || patchIdExitCode != 0) {
         _logger.warning(
-          'git show/patch-id failed for $commitSha (show exit $showExitCode, '
+          '$p git show/patch-id failed for $commitSha (show exit $showExitCode, '
           'patch-id exit $patchIdExitCode)',
         );
         return null;
@@ -389,37 +394,35 @@ class LocalGitClient implements GitClient {
           .firstWhere((l) => l.trim().isNotEmpty, orElse: () => '');
       final patchId = firstLine.split(' ').first;
       if (patchId.isEmpty) {
-        _logger.warning('Empty patch-id for commit $commitSha');
+        _logger.warning('$p Empty patch-id for commit $commitSha');
         return null;
       }
-      _logger.info('patch-id for $commitSha -> $patchId');
+      _logger.info('$p patch-id for $commitSha -> $patchId');
       return patchId;
     } catch (err) {
-      _logger.severe('git patch-id error: $err');
+      _logger.severe('$p git patch-id error: $err');
       return null;
     }
   }
 
-  /// Detects a cherry-picked commit by checking patch-id and commit message
-  /// on [branchRef]. Content-match is NOT included here (it runs first, at
-  /// the [branchesContainingPatchId] level). This is intentionally sequential
-  /// per branch because the caller already paid the cost for the fast path.
   Future<bool> _checkBranchForPatchIdSlow(
     String targetPatchId,
     String branchRef,
     String commitSha, {
     String? baseRef,
     required String workingDirectory,
+    String? prId,
   }) async {
-    final rangeRefFuture = _buildRangeRef(branchRef, baseRef, workingDirectory);
+    final p = _logPrefix(prId);
+    final rangeRefFuture = _buildRangeRef(branchRef, baseRef, workingDirectory, prId: prId);
 
     final futures = <Future<bool>>[
       rangeRefFuture.then((rangeRef) async {
         try {
-          _logger.info("Built range ref from $baseRef -> $rangeRef");
+          _logger.info("$p Built range ref from $baseRef -> $rangeRef");
           return await _patchIdExistsInLog(rangeRef, targetPatchId, workingDirectory);
         } catch (err) {
-          _logger.warning('patch-id check failed for $branchRef: $err');
+          _logger.warning('$p patch-id check failed for $branchRef: $err');
           return false;
         }
       }),
@@ -429,7 +432,7 @@ class LocalGitClient implements GitClient {
             branchRef, commitSha, workingDirectory,
           );
         } catch (err) {
-          _logger.warning('commit-message check failed for $branchRef: $err');
+          _logger.warning('$p commit-message check failed for $branchRef: $err');
           return false;
         }
       })(),
@@ -439,14 +442,12 @@ class LocalGitClient implements GitClient {
     return results.any((r) => r);
   }
 
-  /// Builds a range expression like `<merge-base>..<branchRef>` to limit
-  /// the log to commits unique to that branch. Falls back to last 100
-  /// commits when no [baseRef] is available.
   Future<String> _buildRangeRef(
     String branchRef,
     String? baseRef,
-    String workingDirectory,
-  ) async {
+    String workingDirectory, {
+    String? prId,
+  }) async {
     if (baseRef == null) {
       return '-100 $branchRef';
     }
@@ -467,17 +468,11 @@ class LocalGitClient implements GitClient {
     return '-100 $branchRef';
   }
 
-  /// Checks whether any commit in [rangeRef] has a [targetPatchId].
-  /// Processes commits one at a time (most recent first) via
-  /// `git diff-tree -p -m <sha> | git patch-id`, stopping at the first match.
-  /// `git diff-tree` is significantly faster than `git log -p` because it reads
-  /// only tree objects without parsing commit metadata.
   Future<bool> _patchIdExistsInLog(
     String rangeRef,
     String targetPatchId,
     String workingDirectory,
   ) async {
-    // Get commit SHA list in the range, most recent first
     final revListResult = await Process.run(
       'git',
       ['rev-list'] + rangeRef.split(' '),
@@ -493,7 +488,6 @@ class LocalGitClient implements GitClient {
         .where((l) => l.isNotEmpty)
         .toList();
 
-    // Process each commit individually — stop at first match
     for (final sha in shas) {
       try {
         final diffProcess = await Process.start(
@@ -515,14 +509,11 @@ class LocalGitClient implements GitClient {
 
         if (output.contains(targetPatchId)) return true;
       } catch (_) {
-        // Skip commits that fail to diff
       }
     }
     return false;
   }
 
-  /// Checks whether any commit on [branchRef] has a message containing
-  /// `cherry picked from commit <commitSha>`.
   Future<bool> _cherryPickMessageExists(
     String branchRef,
     String commitSha,
@@ -546,18 +537,15 @@ class LocalGitClient implements GitClient {
     return result.exitCode == 0 && result.stdout.toString().trim().isNotEmpty;
   }
 
-  /// Checks whether all files introduced/changed by [commitSha] have the same
-  /// blob hashes on [branchRef]. This detects ported changes from any workflow
-  /// (cherry-pick, squash merge, rebase, manual application) as long as no
-  /// subsequent modifications to the same files exist on the target branch.
   Future<bool> _branchHasMatchingContent(
     String branchRef,
     String commitSha,
-    String workingDirectory,
-  ) async {
-    _logger.info('content-match: checking $commitSha on $branchRef');
+    String workingDirectory, {
+    String? prId,
+  }) async {
+    final p = _logPrefix(prId);
+    _logger.info('$p content-match: checking $commitSha on $branchRef');
 
-    // Refresh remote refs so origin/* are up-to-date
     try {
       await Process.run(
         'git',
@@ -566,10 +554,8 @@ class LocalGitClient implements GitClient {
         runInShell: true,
       );
     } catch (_) {
-      // Non-fatal; stale data is still acceptable
     }
 
-    // Get the parent commit to compute the diff introduced by this commit
     final parentResult = await Process.run(
       'git',
       ['rev-parse', '$commitSha^1'],
@@ -579,7 +565,6 @@ class LocalGitClient implements GitClient {
     if (parentResult.exitCode != 0) return false;
     final parentSha = parentResult.stdout.toString().trim();
 
-    // Get all files changed in this commit with their new blob hashes
     final diffResult = await Process.run(
       'git',
       ['diff-tree', '--no-commit-id', '-r', parentSha, commitSha],
@@ -588,7 +573,6 @@ class LocalGitClient implements GitClient {
     );
     if (diffResult.exitCode != 0) return false;
 
-    // Parse output: <old-mode> <new-mode> <old-blob> <new-blob> <status>\t<path>
     final filesToCheck = <String, String>{};
     for (final line in diffResult.stdout.toString().split('\n')) {
       final l = line.trim();
@@ -610,10 +594,9 @@ class LocalGitClient implements GitClient {
     if (filesToCheck.isEmpty) return false;
 
     _logger.info(
-      'content-match: checking ${filesToCheck.length} file(s) on $branchRef: ${filesToCheck.keys}',
+      '$p content-match: checking ${filesToCheck.length} file(s) on $branchRef: ${filesToCheck.keys}',
     );
 
-    // Get blob hashes for all changed files on the target branch in one call
     final lsResult = await Process.run(
       'git',
       ['ls-tree', '-r', branchRef] + filesToCheck.keys.toList(),
@@ -634,27 +617,27 @@ class LocalGitClient implements GitClient {
       targetBlobs[path] = meta[2];
     }
 
-    _logger.info('content-match: target blobs on $branchRef: $targetBlobs');
+    _logger.info('$p content-match: target blobs on $branchRef: $targetBlobs');
 
     for (final entry in filesToCheck.entries) {
       final targetBlob = targetBlobs[entry.key];
       final expectedBlob = entry.value;
       if (targetBlob == null) {
         _logger.info(
-          'content-match: MISSING file "${entry.key}" on $branchRef',
+          '$p content-match: MISSING file "${entry.key}" on $branchRef',
         );
         return false;
       }
       if (targetBlob != expectedBlob) {
         _logger.info(
-          'content-match: BLOB MISMATCH for "${entry.key}" on $branchRef '
+          '$p content-match: BLOB MISMATCH for "${entry.key}" on $branchRef '
           '(expected=$expectedBlob, got=$targetBlob)',
         );
         return false;
       }
     }
 
-    _logger.info('content-match: ALL files match on $branchRef');
+    _logger.info('$p content-match: ALL files match on $branchRef');
     return true;
   }
 
@@ -662,14 +645,16 @@ class LocalGitClient implements GitClient {
   Future<Either<Failure, bool>> branchExists(
     String branch, {
     required String workingDirectory,
+    String? prId,
   }) async {
+    final p = _logPrefix(prId);
     assert(branch.trim().isNotEmpty, 'branch must not be empty');
     assert(
       workingDirectory.trim().isNotEmpty,
       'workingDirectory must not be empty',
     );
     final branchName = branch.trim();
-    _logger.info('git branch -a --list $branchName in $workingDirectory');
+    _logger.info('$p git branch -a --list $branchName in $workingDirectory');
     try {
       final result = await Process.run(
         'git',
@@ -678,7 +663,7 @@ class LocalGitClient implements GitClient {
         runInShell: true,
       );
       if (result.exitCode != 0) {
-        _logger.warning('git exit ${result.exitCode}: ${result.stderr}');
+        _logger.warning('$p git exit ${result.exitCode}: ${result.stderr}');
         return Either.left(
           Failure(message: 'git command failed', cause: result.stderr),
         );
@@ -699,10 +684,10 @@ class LocalGitClient implements GitClient {
           normalizedBranches.any(
             (item) => item.endsWith('/$branchName'),
           );
-      _logger.info('git branch-exists($branchName) -> $exists');
+      _logger.info('$p git branch-exists($branchName) -> $exists');
       return Either.right(exists);
     } catch (err) {
-      _logger.severe('git command error: $err');
+      _logger.severe('$p git command error: $err');
       return Either.left(Failure(message: 'git command error', cause: err));
     }
   }
@@ -710,12 +695,14 @@ class LocalGitClient implements GitClient {
   @override
   Future<Either<Failure, bool>> hasRemote({
     required String workingDirectory,
+    String? prId,
   }) async {
+    final p = _logPrefix(prId);
     assert(
       workingDirectory.trim().isNotEmpty,
       'workingDirectory must not be empty',
     );
-    _logger.info('git remote in $workingDirectory');
+    _logger.info('$p git remote in $workingDirectory');
     try {
       final result = await Process.run(
         'git',
@@ -724,7 +711,7 @@ class LocalGitClient implements GitClient {
         runInShell: true,
       );
       if (result.exitCode != 0) {
-        _logger.warning('git remote exit ${result.exitCode}: ${result.stderr}');
+        _logger.warning('$p git remote exit ${result.exitCode}: ${result.stderr}');
         return Either.left(
           Failure(message: 'git command failed', cause: result.stderr),
         );
@@ -734,10 +721,10 @@ class LocalGitClient implements GitClient {
           .split('\n')
           .map((line) => line.trim())
           .any((line) => line.isNotEmpty);
-      _logger.info('git remote -> hasRemote=$hasConfiguredRemote');
+      _logger.info('$p git remote -> hasRemote=$hasConfiguredRemote');
       return Either.right(hasConfiguredRemote);
     } catch (err) {
-      _logger.severe('git command error: $err');
+      _logger.severe('$p git command error: $err');
       return Either.left(Failure(message: 'git command error', cause: err));
     }
   }
@@ -745,12 +732,14 @@ class LocalGitClient implements GitClient {
   @override
   Future<Either<Failure, String>> getRemoteUrl({
     required String workingDirectory,
+    String? prId,
   }) async {
+    final p = _logPrefix(prId);
     assert(
       workingDirectory.trim().isNotEmpty,
       'workingDirectory must not be empty',
     );
-    _logger.info('git remote get-url origin in $workingDirectory');
+    _logger.info('$p git remote get-url origin in $workingDirectory');
     try {
       final result = await Process.run(
         'git',
@@ -759,16 +748,16 @@ class LocalGitClient implements GitClient {
         runInShell: true,
       );
       if (result.exitCode != 0) {
-        _logger.warning('git remote get-url exit ${result.exitCode}: ${result.stderr}');
+        _logger.warning('$p git remote get-url exit ${result.exitCode}: ${result.stderr}');
         return Either.left(
           Failure(message: 'git remote get-url failed', cause: result.stderr),
         );
       }
       final url = result.stdout.toString().trim();
-      _logger.info('git remote get-url origin -> $url');
+      _logger.info('$p git remote get-url origin -> $url');
       return Either.right(url);
     } catch (err) {
-      _logger.severe('git command error: $err');
+      _logger.severe('$p git command error: $err');
       return Either.left(Failure(message: 'git command error', cause: err));
     }
   }
@@ -777,15 +766,17 @@ class LocalGitClient implements GitClient {
   Future<Either<Failure, List<String>>> listBranches({
     required String workingDirectory,
     bool fetch = false,
+    String? prId,
   }) async {
+    final p = _logPrefix(prId);
     assert(
       workingDirectory.trim().isNotEmpty,
       'workingDirectory must not be empty',
     );
-    _logger.info('listBranches in $workingDirectory (fetch=$fetch)');
+    _logger.info('$p listBranches in $workingDirectory (fetch=$fetch)');
     try {
       if (fetch) {
-        _logger.info('git fetch --prune origin in $workingDirectory');
+        _logger.info('$p git fetch --prune origin in $workingDirectory');
         final fetchResult = await Process.run(
           'git',
           ['fetch', '--prune', 'origin'],
@@ -793,15 +784,15 @@ class LocalGitClient implements GitClient {
           runInShell: true,
         );
         if (fetchResult.exitCode != 0) {
-          _logger.warning('git fetch exit ${fetchResult.exitCode}: ${fetchResult.stderr}');
+          _logger.warning('$p git fetch exit ${fetchResult.exitCode}: ${fetchResult.stderr}');
           return Either.left(
             Failure(message: 'git fetch failed', cause: fetchResult.stderr),
           );
         }
-        _logger.info('git fetch completed (exit 0)');
+        _logger.info('$p git fetch completed (exit 0)');
       }
 
-      _logger.info('git branch -a in $workingDirectory');
+      _logger.info('$p git branch -a in $workingDirectory');
       final result = await Process.run(
         'git',
         ['branch', '-a'],
@@ -809,7 +800,7 @@ class LocalGitClient implements GitClient {
         runInShell: true,
       );
       if (result.exitCode != 0) {
-        _logger.warning('git branch -a exit ${result.exitCode}: ${result.stderr}');
+        _logger.warning('$p git branch -a exit ${result.exitCode}: ${result.stderr}');
         return Either.left(
           Failure(message: 'git branch -a failed', cause: result.stderr),
         );
@@ -822,10 +813,10 @@ class LocalGitClient implements GitClient {
           .where((line) => line.isNotEmpty)
           .toSet()
           .toList();
-      _logger.info('git branch -a -> ${branches.length} branch(es)');
+      _logger.info('$p git branch -a -> ${branches.length} branch(es)');
       return Either.right(branches);
     } catch (err) {
-      _logger.severe('git command error: $err');
+      _logger.severe('$p git command error: $err');
       return Either.left(Failure(message: 'git command error', cause: err));
     }
   }

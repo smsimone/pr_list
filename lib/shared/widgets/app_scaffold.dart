@@ -39,6 +39,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     final currentIndex = widget.navigationShell.currentIndex;
     final viewMode = ref.watch(prListViewModeProvider);
     final nextRunAsync = ref.watch(schedulerNextRunProvider);
+    final syncRunningSince = ref.watch(syncRunningSinceProvider).valueOrNull;
     final isSyncRunning = ref.watch(prSyncServiceProvider).isSyncRunning;
     ref.listen(updateStateProvider, (_, state) {
       if (state.status == UpdateStateStatus.available) {
@@ -68,7 +69,9 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                     await triggerSync();
                   },
             icon: const Icon(Icons.schedule),
-            label: Text(_buildSchedulerLabel(l10n, nextRunAsync.value)),
+            label: Text(
+              _buildSchedulerLabel(l10n, nextRunAsync.value, syncRunningSince),
+            ),
           ),
           if (currentIndex == 0)
             IconButton(
@@ -179,7 +182,17 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     }
   }
 
-  String _buildSchedulerLabel(AppLocalizations l10n, DateTime? nextRun) {
+  String _buildSchedulerLabel(
+    AppLocalizations l10n,
+    DateTime? nextRun,
+    Duration? syncRunningSince,
+  ) {
+    if (syncRunningSince != null) {
+      return l10n.syncInProgress(
+        syncRunningSince.inMinutes,
+        syncRunningSince.inSeconds.remainder(60),
+      );
+    }
     if (nextRun == null) {
       return l10n.schedulerNotScheduled;
     }

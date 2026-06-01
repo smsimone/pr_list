@@ -175,7 +175,7 @@ class PrRepository {
       });
       return const Either.right(null);
     } catch (err) {
-      _logger.severe('setEnvFlags for PR #$prId failed: $err');
+      _logger.severe('setEnvFlags for [PR#$prId] failed: $err');
       return Either.left(
         Failure(message: 'Set environment flags failed', cause: err),
       );
