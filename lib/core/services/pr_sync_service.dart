@@ -13,6 +13,10 @@ import 'package:pr_list/core/services/ticket_provider_registry.dart';
 import 'package:pr_list/core/utils/either.dart';
 import 'package:pr_list/core/utils/failure.dart';
 
+enum _SyncResult { ok, error, skipped }
+
+const _kMaxConcurrentSyncs = 5;
+
 class PrSyncService {
   static const _kSyncInterval = Duration(minutes: 10);
 
@@ -112,65 +116,35 @@ class PrSyncService {
       final prs = result.right;
       _logger.info('Loaded ${prs.length} PR(s) to sync');
 
-      for (final pr in prs) {
-        final prLabel = 'PR #${pr.id} @ ${pr.projectAlias}';
-        if (pr.prLink == null || pr.prLink!.trim().isEmpty) {
-          _logger.info('$prLabel: no PR link, skipping');
-          skipped++;
-          continue;
-        }
-        final provider = _providerRegistry.match(pr.prLink!);
-        if (provider == null) {
-          _logger.warning('$prLabel: no provider supports URL ${pr.prLink}');
-          skipped++;
-          continue;
-        }
-        _logger.info('$prLabel: matched provider ${provider.name}');
+      final patResult = await _loadPat();
+      if (patResult.isLeft) {
+        _logger.warning('PAT read error: ${patResult.left.message}');
+        return;
+      }
+      final pat = patResult.right;
+      if (pat == null || pat.trim().isEmpty) {
+        _logger.warning('PAT is empty, aborting sync');
+        return;
+      }
 
-        final patResult = await _loadPat();
-        if (patResult.isLeft) {
-          _logger.warning('$prLabel: PAT read error: ${patResult.left.message}');
-          errors++;
-          continue;
+      for (int i = 0; i < prs.length; i += _kMaxConcurrentSyncs) {
+        final end = (i + _kMaxConcurrentSyncs > prs.length)
+            ? prs.length
+            : i + _kMaxConcurrentSyncs;
+        final batch = prs.sublist(i, end);
+        final batchResults = await Future.wait(
+          batch.map((pr) => _syncOnePr(pr, pat)),
+        );
+        for (final r in batchResults) {
+          switch (r) {
+            case _SyncResult.ok:
+              ok++;
+            case _SyncResult.error:
+              errors++;
+            case _SyncResult.skipped:
+              skipped++;
+          }
         }
-        final pat = patResult.right;
-        if (pat == null || pat.trim().isEmpty) {
-          _logger.warning('$prLabel: PAT is empty, skipping');
-          errors++;
-          continue;
-        }
-
-        _logger.info('$prLabel: fetching provider info...');
-        final syncResult = await _syncProvider(pr, provider, pat);
-        if (syncResult.isLeft) {
-          _logger.warning('$prLabel: sync failed: ${syncResult.left.message}');
-          errors++;
-          continue;
-        }
-        _logger.info('$prLabel: provider info updated successfully');
-
-        final updatedStatus = await _loadProviderStatus(pr.id);
-        if (updatedStatus == 'completed') {
-          _logger.info('$prLabel: status is completed, checking environments...');
-          final lastCommit = await _loadLastCommit(pr.id);
-          final mergeCommit = await _loadMergeCommit(pr.id);
-          final workingDir = await _resolveWorkingDirectory(pr);
-          await _syncEnvironments(
-            pr.id,
-            lastCommit,
-            mergeCommit,
-            workingDir,
-          );
-        } else {
-          _logger.info('$prLabel: status=$updatedStatus, skipping environment check');
-        }
-
-        if (pr.jiraTicket != null && pr.jiraTicket!.trim().isNotEmpty) {
-          _logger.info('$prLabel: syncing ticket status...');
-          await _syncTicketStatus(pr.id, pr.jiraTicket!);
-        }
-
-        ok++;
       }
     } finally {
       _isSyncRunning = false;
@@ -178,6 +152,51 @@ class PrSyncService {
       _logger.info(
         'PR sync finished: $ok OK, $errors errors, $skipped skipped in ${elapsed}ms',
       );
+    }
+  }
+
+  Future<_SyncResult> _syncOnePr(PullRequest pr, String pat) async {
+    final prLabel = 'PR #${pr.id} @ ${pr.projectAlias}';
+    try {
+      if (pr.prLink == null || pr.prLink!.trim().isEmpty) {
+        _logger.info('$prLabel: no PR link, skipping');
+        return _SyncResult.skipped;
+      }
+      final provider = _providerRegistry.match(pr.prLink!);
+      if (provider == null) {
+        _logger.warning('$prLabel: no provider supports URL ${pr.prLink}');
+        return _SyncResult.skipped;
+      }
+      _logger.info('$prLabel: matched provider ${provider.name}');
+
+      _logger.info('$prLabel: fetching provider info...');
+      final syncResult = await _syncProvider(pr, provider, pat);
+      if (syncResult.isLeft) {
+        _logger.warning('$prLabel: sync failed: ${syncResult.left.message}');
+        return _SyncResult.error;
+      }
+      _logger.info('$prLabel: provider info updated successfully');
+
+      final updatedStatus = await _loadProviderStatus(pr.id);
+      if (updatedStatus == 'completed') {
+        _logger.info('$prLabel: status is completed, checking environments...');
+        final lastCommit = await _loadLastCommit(pr.id);
+        final mergeCommit = await _loadMergeCommit(pr.id);
+        final workingDir = await _resolveWorkingDirectory(pr);
+        await _syncEnvironments(pr.id, lastCommit, mergeCommit, workingDir);
+      } else {
+        _logger.info('$prLabel: status=$updatedStatus, skipping environment check');
+      }
+
+      if (pr.jiraTicket != null && pr.jiraTicket!.trim().isNotEmpty) {
+        _logger.info('$prLabel: syncing ticket status...');
+        await _syncTicketStatus(pr.id, pr.jiraTicket!);
+      }
+
+      return _SyncResult.ok;
+    } catch (err) {
+      _logger.severe('$prLabel: unexpected error: $err');
+      return _SyncResult.error;
     }
   }
 
