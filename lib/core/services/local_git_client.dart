@@ -130,6 +130,226 @@ class LocalGitClient implements GitClient {
     return Either.right(results.toList());
   }
 
+  @override
+  Future<Either<Failure, List<String>>> branchesContainingMessage(
+    String commitSha, {
+    required String workingDirectory,
+    List<String>? onlyBranches,
+  }) async {
+    assert(commitSha.trim().isNotEmpty, 'commitSha must not be empty');
+    assert(
+      workingDirectory.trim().isNotEmpty,
+      'workingDirectory must not be empty',
+    );
+
+    if (onlyBranches == null || onlyBranches.isEmpty) {
+      return Either.right([]);
+    }
+
+    final msgResult = await Process.run(
+      'git',
+      ['log', '--format=%B', '-1', commitSha],
+      workingDirectory: workingDirectory,
+      runInShell: true,
+    );
+    if (msgResult.exitCode != 0) {
+      return Either.left(
+        Failure(message: 'git log failed', cause: msgResult.stderr),
+      );
+    }
+    final fullMessage = msgResult.stdout.toString().trim();
+    if (fullMessage.isEmpty) return Either.right([]);
+
+    final subject = fullMessage.split('\n').first.trim();
+    final issueIdMatch = RegExp(r'[A-Z][A-Z0-9]+-\d+').firstMatch(subject);
+    final issueId = issueIdMatch?.group(0);
+
+    _logger.info(
+      'message-grep for $commitSha: subject="$subject", issueId=$issueId'
+      ', branches=$onlyBranches',
+    );
+
+    final patterns = <String>[
+      ?issueId,
+      subject,
+    ];
+
+    final results = <String>{};
+    for (final branch in onlyBranches) {
+      final branchRef = 'origin/$branch';
+      for (final pattern in patterns) {
+        try {
+          final result = await Process.run(
+            'git',
+            [
+              'log',
+              '--format=%H',
+              '--fixed-strings',
+              '--grep',
+              pattern,
+              '-1',
+              branchRef,
+            ],
+            workingDirectory: workingDirectory,
+            runInShell: true,
+          );
+          if (result.exitCode == 0 &&
+              result.stdout.toString().trim().isNotEmpty) {
+            _logger.info(
+              'message-grep match for $branchRef with pattern "$pattern"',
+            );
+            results.add(branch);
+            break;
+          }
+        } catch (err) {
+          _logger.warning('message-grep failed for $branchRef: $err');
+        }
+      }
+    }
+
+    _logger.info(
+      'message-grep for $commitSha -> ${results.length} branch(es): $results',
+    );
+    return Either.right(results.toList());
+  }
+
+  @override
+  Future<Either<Failure, List<String>>> branchesContainingString(
+    String commitSha, {
+    required String workingDirectory,
+    List<String>? onlyBranches,
+    List<String>? searchStrings,
+  }) async {
+    assert(commitSha.trim().isNotEmpty, 'commitSha must not be empty');
+    assert(
+      workingDirectory.trim().isNotEmpty,
+      'workingDirectory must not be empty',
+    );
+
+    if (onlyBranches == null || onlyBranches.isEmpty) {
+      return Either.right([]);
+    }
+
+    final strings = searchStrings ??
+        await _extractSearchStrings(commitSha, workingDirectory);
+    if (strings.isEmpty) {
+      _logger.info('no search strings for $commitSha, skipping pickaxe');
+      return Either.right([]);
+    }
+
+    _logger.info(
+      'pickaxe for $commitSha: ${strings.length} string(s) on '
+      '${onlyBranches.length} branch(es): $strings',
+    );
+
+    final results = <String>{};
+    for (final branch in onlyBranches) {
+      final branchRef = 'origin/$branch';
+      for (final searchString in strings) {
+        try {
+          final result = await Process.run(
+            'git',
+            [
+              'log',
+              '--format=%H',
+              '-S',
+              searchString,
+              '-1',
+              branchRef,
+            ],
+            workingDirectory: workingDirectory,
+            runInShell: true,
+          );
+          if (result.exitCode == 0 &&
+              result.stdout.toString().trim().isNotEmpty) {
+            _logger.info(
+              'pickaxe match for $branchRef with "$searchString"',
+            );
+            results.add(branch);
+            break;
+          }
+        } catch (err) {
+          _logger.warning('pickaxe failed for $branchRef: $err');
+        }
+      }
+    }
+
+    _logger.info(
+      'pickaxe for $commitSha -> ${results.length} branch(es): $results',
+    );
+    return Either.right(results.toList());
+  }
+
+  /// Extracts up to 3 unique code strings from the diff of [commitSha] to use
+  /// as search terms for `git log -S` (pickaxe). Prioritizes quoted strings,
+  /// then long identifiers from added lines.
+  Future<List<String>> _extractSearchStrings(
+    String commitSha,
+    String workingDirectory,
+  ) async {
+    try {
+      final result = await Process.run(
+        'git',
+        ['diff-tree', '--no-commit-id', '-p', commitSha],
+        workingDirectory: workingDirectory,
+        runInShell: true,
+      );
+      if (result.exitCode != 0) return [];
+
+      final lines = result.stdout.toString().split('\n');
+      final strings = <String>{};
+
+      for (final line in lines) {
+        if (!line.startsWith('+')) continue;
+        if (line.startsWith('+++') || line.startsWith('---')) continue;
+        if (line.length <= 1) continue;
+
+        final content = line.substring(1);
+
+        // Extract double-quoted strings
+        for (final m
+            in RegExp(r'"([^"]*)"').allMatches(content)) {
+          final q = m.group(1)!.trim();
+          if (q.length >= 10) strings.add(q);
+        }
+
+        // Extract single-quoted strings
+        for (final m
+            in RegExp(r"'([^']*)'").allMatches(content)) {
+          final q = m.group(1)!.trim();
+          if (q.length >= 10) strings.add(q);
+        }
+      }
+
+      // If no quoted strings found, use long identifiers from added lines
+      if (strings.isEmpty) {
+        for (final line in lines) {
+          if (!line.startsWith('+')) continue;
+          if (line.startsWith('+++') || line.startsWith('---')) continue;
+          if (line.length <= 1) continue;
+
+          final trimmed = line.substring(1).trim();
+          if (trimmed.length < 30) continue;
+          if (trimmed.startsWith('//') || trimmed.startsWith('*')) continue;
+
+          final identifiers = trimmed
+              .split(RegExp(r'\s+|[,;(){}<>\[\].=+*/&|!~^%]'))
+              .where((w) => w.length >= 8 && !RegExp(r'^\d+$').hasMatch(w))
+              .toList();
+          identifiers.sort((a, b) => b.length.compareTo(a.length));
+          if (identifiers.isNotEmpty) strings.add(identifiers.first);
+        }
+      }
+
+      final resultList = strings.toList();
+      resultList.sort((a, b) => b.length.compareTo(a.length));
+      return resultList.take(3).toList();
+    } catch (err) {
+      _logger.warning('extractSearchStrings error: $err');
+      return [];
+    }
+  }
+
   /// Computes the patch-id for the given commit SHA.
   /// Returns null on failure.
   Future<String?> _computePatchId(

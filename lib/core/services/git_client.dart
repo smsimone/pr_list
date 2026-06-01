@@ -21,6 +21,35 @@ abstract class GitClient {
     String? baseRef,
   });
 
+  /// Checks which remote branches contain a commit whose message matches
+  /// the message of [commitSha] (via `git log --grep`). This detects squash
+  /// merges and rebased commits where the original commit message is preserved.
+  ///
+  /// If [onlyBranches] is provided, only those branches are checked.
+  /// Extracts both the subject line and any issue ID (e.g. PRJ-1234) from
+  /// the original commit message and tries each as a grep pattern.
+  Future<Either<Failure, List<String>>> branchesContainingMessage(
+    String commitSha, {
+    required String workingDirectory,
+    List<String>? onlyBranches,
+  });
+
+  /// Checks which remote branches contain a commit that introduced or removed
+  /// a code string matching the diff of [commitSha] (via `git log -S` pickaxe).
+  /// This is the last-resort strategy for detecting cherry-picks that were
+  /// modified after porting (different SHA, different patch-id, different message).
+  ///
+  /// If [onlyBranches] is provided, only those branches are checked.
+  /// If [searchStrings] is provided, those strings are used directly; otherwise
+  /// unique strings are auto-extracted from the commit diff (quoted strings and
+  /// long identifiers).
+  Future<Either<Failure, List<String>>> branchesContainingString(
+    String commitSha, {
+    required String workingDirectory,
+    List<String>? onlyBranches,
+    List<String>? searchStrings,
+  });
+
   Future<Either<Failure, bool>> branchExists(
     String branch, {
     required String workingDirectory,

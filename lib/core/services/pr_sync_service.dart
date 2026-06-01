@@ -350,6 +350,54 @@ class PrSyncService {
       if (patchResult.isRight) {
         allBranches.addAll(patchResult.right);
       }
+
+      // Step 3: message grep — search by commit message subject / issue ID
+      final normalizedFound2 = allBranches
+          .map((b) => b.replaceFirst(RegExp(r'^(remotes/)?origin/'), ''))
+          .toSet();
+      final branchesToCheck2 = envBranchPatterns
+          .where((p) => !normalizedFound2.any(
+            (b) => b == p || b.endsWith('/$p'),
+          ))
+          .toList();
+
+      if (branchesToCheck2.isNotEmpty) {
+        _logger.info(
+          'PR #$prId: running message-grep for branches: $branchesToCheck2',
+        );
+        final msgResult = await _gitClient.branchesContainingMessage(
+          candidateSha,
+          workingDirectory: workingDirectory,
+          onlyBranches: branchesToCheck2,
+        );
+        if (msgResult.isRight) {
+          allBranches.addAll(msgResult.right);
+        }
+      }
+
+      // Step 4: pickaxe — search by unique code strings (last resort)
+      final normalizedFound3 = allBranches
+          .map((b) => b.replaceFirst(RegExp(r'^(remotes/)?origin/'), ''))
+          .toSet();
+      final branchesToCheck3 = envBranchPatterns
+          .where((p) => !normalizedFound3.any(
+            (b) => b == p || b.endsWith('/$p'),
+          ))
+          .toList();
+
+      if (branchesToCheck3.isNotEmpty) {
+        _logger.info(
+          'PR #$prId: running pickaxe for branches: $branchesToCheck3',
+        );
+        final stringResult = await _gitClient.branchesContainingString(
+          candidateSha,
+          workingDirectory: workingDirectory,
+          onlyBranches: branchesToCheck3,
+        );
+        if (stringResult.isRight) {
+          allBranches.addAll(stringResult.right);
+        }
+      }
     }
 
     _logger.info(
