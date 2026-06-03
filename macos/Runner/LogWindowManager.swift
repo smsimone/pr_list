@@ -195,7 +195,7 @@ class LogWindowManager: NSObject {
     searchField.sendsSearchStringImmediately = false
     searchField.target = self
     searchField.action = #selector(searchFieldAction(_:))
-    searchField.bezelStyle = .texturedRounded
+    searchField.bezelStyle = .roundedBezel
 
     let btn = NSButton(frame: NSRect(x: 206, y: 8, width: 100, height: 24))
     btn.title = "Find Next"
