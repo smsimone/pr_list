@@ -102,6 +102,8 @@
   "actionClose": "Close",
   "filterProject": "Filter by project",
   "filterTicketStatus": "Ticket status",
+  "filterTicketId": "Ticket ID",
+  "filterTicketIdHint": "Search by ticket ID",
   "ticketStatusAll": "All",
   "ticketStatusOpen": "Open",
   "ticketStatusClosed": "Closed",

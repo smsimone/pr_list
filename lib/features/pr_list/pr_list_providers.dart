@@ -8,6 +8,7 @@ import 'package:pr_list/core/services/provider_registry.dart';
 import 'package:pr_list/features/pr_list/pr_list_notifier.dart';
 import 'package:pr_list/features/pr_list/pr_list_state.dart';
 import 'package:pr_list/features/settings/env_mapping_providers.dart';
+import 'package:pr_list/shared/utils/ticket_utils.dart';
 
 enum PrListViewMode { groupedList, kanban }
 
@@ -16,20 +17,24 @@ enum TicketStatusFilter { all, open, closed, withoutTicket }
 class PrListFilter {
   final Set<String> selectedProjectAliases;
   final TicketStatusFilter ticketStatus;
+  final String ticketQuery;
 
   const PrListFilter({
     this.selectedProjectAliases = const {},
     this.ticketStatus = TicketStatusFilter.all,
+    this.ticketQuery = '',
   });
 
   PrListFilter copyWith({
     Set<String>? selectedProjectAliases,
     TicketStatusFilter? ticketStatus,
+    String? ticketQuery,
   }) {
     return PrListFilter(
       selectedProjectAliases:
           selectedProjectAliases ?? this.selectedProjectAliases,
       ticketStatus: ticketStatus ?? this.ticketStatus,
+      ticketQuery: ticketQuery ?? this.ticketQuery,
     );
   }
 }
@@ -104,9 +109,31 @@ final filteredPrListProvider = Provider.autoDispose<List<PullRequest>>((ref) {
         if (pr.jiraTicket != null) return false;
         break;
     }
+
+    if (!matchesTicketQuery(pr, filter.ticketQuery)) {
+      return false;
+    }
+
     return true;
   }).toList();
 });
+
+bool matchesTicketQuery(PullRequest pr, String ticketQuery) {
+  final normalizedTicketQuery = ticketQuery.trim().toLowerCase();
+  if (normalizedTicketQuery.isEmpty) {
+    return true;
+  }
+
+  final ticketLink = pr.jiraTicket;
+  if (ticketLink == null || ticketLink.trim().isEmpty) {
+    return false;
+  }
+
+  final extractedTicket = extractTicketName(ticketLink).toLowerCase();
+  final rawTicketLink = ticketLink.toLowerCase();
+  return extractedTicket.contains(normalizedTicketQuery) ||
+      rawTicketLink.contains(normalizedTicketQuery);
+}
 
 final duplicatePrIdsProvider = Provider.autoDispose<Set<int>>((ref) {
   final allPrs = ref.watch(prListNotifierProvider).items;

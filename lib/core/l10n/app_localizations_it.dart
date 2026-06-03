@@ -228,6 +228,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get filterTicketStatus => 'Stato ticket';
 
   @override
+  String get filterTicketId => 'ID ticket';
+
+  @override
+  String get filterTicketIdHint => 'Cerca per ID ticket';
+
+  @override
   String get ticketStatusAll => 'Tutti';
 
   @override

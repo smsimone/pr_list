@@ -226,6 +226,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterTicketStatus => 'Ticket status';
 
   @override
+  String get filterTicketId => 'Ticket ID';
+
+  @override
+  String get filterTicketIdHint => 'Search by ticket ID';
+
+  @override
   String get ticketStatusAll => 'All';
 
   @override

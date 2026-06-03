@@ -512,6 +512,18 @@ abstract class AppLocalizations {
   /// **'Ticket status'**
   String get filterTicketStatus;
 
+  /// No description provided for @filterTicketId.
+  ///
+  /// In en, this message translates to:
+  /// **'Ticket ID'**
+  String get filterTicketId;
+
+  /// No description provided for @filterTicketIdHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by ticket ID'**
+  String get filterTicketIdHint;
+
   /// No description provided for @ticketStatusAll.
   ///
   /// In en, this message translates to:

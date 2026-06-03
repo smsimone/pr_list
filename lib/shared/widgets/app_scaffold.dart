@@ -214,7 +214,8 @@ class _FilterButton extends ConsumerWidget {
     final projects = ref.watch(projectsNotifierProvider).items;
     final hasActiveFilter =
         filter.selectedProjectAliases.isNotEmpty ||
-        filter.ticketStatus != TicketStatusFilter.all;
+        filter.ticketStatus != TicketStatusFilter.all ||
+        filter.ticketQuery.trim().isNotEmpty;
 
     return IconButton(
       icon: Icon(

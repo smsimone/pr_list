@@ -23,22 +23,88 @@ class PrListPage extends ConsumerWidget {
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (filteredPrs.isEmpty) {
-      return EmptyState(message: l10n.emptyState);
-    }
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          const _TicketSearchField(),
+          const SizedBox(height: 12),
+          Expanded(
+            child: filteredPrs.isEmpty
+                ? EmptyState(message: l10n.emptyState)
+                : (viewMode == PrListViewMode.groupedList
+                      ? ResponsiveContainer(child: _GroupedPrList(prs: filteredPrs))
+                      : _KanbanPrList(prs: filteredPrs)),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-    if (viewMode == PrListViewMode.groupedList) {
-      return ResponsiveContainer(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: _GroupedPrList(prs: filteredPrs),
-        ),
+class _TicketSearchField extends ConsumerStatefulWidget {
+  const _TicketSearchField();
+
+  @override
+  ConsumerState<_TicketSearchField> createState() => _TicketSearchFieldState();
+}
+
+class _TicketSearchFieldState extends ConsumerState<_TicketSearchField> {
+  late final TextEditingController _queryController;
+
+  @override
+  void initState() {
+    super.initState();
+    final currentQuery = ref.read(prListFilterProvider).ticketQuery;
+    _queryController = TextEditingController(text: currentQuery);
+    _queryController.addListener(_onQueryChanged);
+  }
+
+  @override
+  void dispose() {
+    _queryController.removeListener(_onQueryChanged);
+    _queryController.dispose();
+    super.dispose();
+  }
+
+  void _onQueryChanged() {
+    final query = _queryController.text;
+    final notifier = ref.read(prListFilterProvider.notifier);
+    final currentFilter = notifier.state;
+    if (currentFilter.ticketQuery == query) {
+      return;
+    }
+    notifier.state = currentFilter.copyWith(ticketQuery: query);
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final currentQuery = ref.watch(
+      prListFilterProvider.select((filter) => filter.ticketQuery),
+    );
+
+    if (currentQuery != _queryController.text) {
+      _queryController.value = TextEditingValue(
+        text: currentQuery,
+        selection: TextSelection.collapsed(offset: currentQuery.length),
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: _KanbanPrList(prs: filteredPrs),
+    return TextField(
+      controller: _queryController,
+      decoration: InputDecoration(
+        labelText: l10n.filterTicketId,
+        hintText: l10n.filterTicketIdHint,
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: currentQuery.trim().isEmpty
+            ? null
+            : IconButton(
+                onPressed: _queryController.clear,
+                icon: const Icon(Icons.clear),
+              ),
+      ),
     );
   }
 }
