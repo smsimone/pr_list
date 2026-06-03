@@ -87,6 +87,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ticketClosed => 'Ticket closed';
 
   @override
+  String get manualMode => 'Manual mode';
+
+  @override
+  String get manualModeHint =>
+      'Disable automatic checks and assign environments manually';
+
+  @override
+  String get manualEnvironmentSelection => 'Environments';
+
+  @override
   String get viewList => 'List view';
 
   @override

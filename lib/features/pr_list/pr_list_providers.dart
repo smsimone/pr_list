@@ -42,6 +42,8 @@ final prListNotifierProvider =
       ),
     );
 
+final prRepositoryProvider = Provider<PrRepository>((ref) => getIt<PrRepository>());
+
 final prEnvFlagsProvider = FutureProvider<Map<int, List<int>>>((ref) async {
   ref.watch(prListNotifierProvider);
   ref.watch(envMappingsProvider);
@@ -73,7 +75,7 @@ final triggerPrSyncProvider = Provider<Future<void> Function()>(
 );
 
 final prListViewModeProvider = StateProvider<PrListViewMode>(
-  (ref) => PrListViewMode.groupedList,
+  (ref) => PrListViewMode.kanban,
 );
 
 final prListFilterProvider = StateProvider.autoDispose<PrListFilter>(

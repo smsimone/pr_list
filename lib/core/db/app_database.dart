@@ -21,6 +21,7 @@ class PullRequests extends Table {
   BoolColumn get isTicketClosed =>
       boolean().withDefault(const Constant(false))();
   TextColumn get ticketStatus => text().nullable()();
+  BoolColumn get isManual => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 }
@@ -148,6 +149,21 @@ class AppDatabase extends _$AppDatabase {
         } catch (e) {
           if (e.toString().contains('duplicate column name')) {
             _logger.warning('Column "lastMergeCommitSha" already exists, skipping migration v7');
+          } else {
+            rethrow;
+          }
+        }
+      },
+    ),
+    _MigrationStep(
+      version: 8,
+      checksum: '20260603_manual_mode',
+      run: (Migrator m) async {
+        try {
+          await m.addColumn(pullRequests, pullRequests.isManual);
+        } catch (e) {
+          if (e.toString().contains('duplicate column name')) {
+            _logger.warning('Column "isManual" already exists, skipping migration v8');
           } else {
             rethrow;
           }

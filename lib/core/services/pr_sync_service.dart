@@ -98,6 +98,10 @@ class PrSyncService {
         );
       }
       final pr = prResult.right!;
+      if (pr.isManual) {
+        _logger.info('[PR#$prId] manual mode enabled, skipping environment check');
+        return const Either.right(null);
+      }
       final lastCommit = await _loadLastCommit(pr.id);
       final mergeCommit = await _loadMergeCommit(pr.id);
       final workingDir = await _resolveWorkingDirectory(pr);
@@ -201,10 +205,15 @@ class PrSyncService {
       final updatedStatus = await _loadProviderStatus(pr.id);
       if (updatedStatus == 'completed') {
         _logger.info('$prLabel: status is completed, checking environments...');
-        final lastCommit = await _loadLastCommit(pr.id);
-        final mergeCommit = await _loadMergeCommit(pr.id);
-        final workingDir = await _resolveWorkingDirectory(pr);
-        await _syncEnvironments(pr.id, lastCommit, mergeCommit, workingDir);
+        final isManual = await _loadIsManual(pr.id);
+        if (isManual == true) {
+          _logger.info('$prLabel: manual mode enabled, skipping environment check');
+        } else {
+          final lastCommit = await _loadLastCommit(pr.id);
+          final mergeCommit = await _loadMergeCommit(pr.id);
+          final workingDir = await _resolveWorkingDirectory(pr);
+          await _syncEnvironments(pr.id, lastCommit, mergeCommit, workingDir);
+        }
       } else {
         _logger.info('$prLabel: status=$updatedStatus, skipping environment check');
       }
@@ -342,7 +351,6 @@ class PrSyncService {
         .toList();
 
     final allBranches = <String>{};
-    String? baseRef;
 
     for (final candidateSha in candidateShas) {
       _logger.info('$prLabel: trying candidate SHA $candidateSha');
@@ -354,9 +362,6 @@ class PrSyncService {
       );
       if (branchesResult.isRight) {
         allBranches.addAll(branchesResult.right);
-        if (baseRef == null && branchesResult.right.isNotEmpty) {
-          baseRef = _sanitizeBaseRef(branchesResult.right.first);
-        }
       }
 
       final normalizedFound = allBranches
@@ -364,7 +369,7 @@ class PrSyncService {
           .toSet();
       final branchesToCheck = envBranchPatterns
           .where((p) => !normalizedFound.any(
-            (b) => b == p || b.endsWith('/$p'),
+            (b) => b == p,
           ))
           .toList();
 
@@ -372,66 +377,21 @@ class PrSyncService {
         break;
       }
 
-      _logger.info(
-        '$prLabel: running patch-id check for branches: $branchesToCheck '
-        '(baseRef=$baseRef)',
-      );
-      final patchResult = await _gitClient.branchesContainingPatchId(
-        candidateSha,
-        workingDirectory: workingDirectory,
-        onlyBranches: branchesToCheck,
-        baseRef: baseRef,
-        prId: prId.toString(),
-      );
-      if (patchResult.isRight) {
-        allBranches.addAll(patchResult.right);
-      }
-
-      final normalizedFound2 = allBranches
-          .map((b) => b.replaceFirst(RegExp(r'^(remotes/)?origin/'), ''))
-          .toSet();
-      final branchesToCheck2 = envBranchPatterns
-          .where((p) => !normalizedFound2.any(
-            (b) => b == p || b.endsWith('/$p'),
-          ))
-          .toList();
-
-      if (branchesToCheck2.isNotEmpty) {
+      final isMergeCandidate = lastMergeCommitSha != null &&
+          lastMergeCommitSha.trim().isNotEmpty &&
+          candidateSha == lastMergeCommitSha;
+      if (isMergeCandidate) {
         _logger.info(
-          '$prLabel: running message-grep for branches: $branchesToCheck2',
+          '$prLabel: running change-id check for branches: $branchesToCheck',
         );
-        final msgResult = await _gitClient.branchesContainingMessage(
+        final changeIdResult = await _gitClient.branchesContainingChangeId(
           candidateSha,
           workingDirectory: workingDirectory,
-          onlyBranches: branchesToCheck2,
+          onlyBranches: branchesToCheck,
           prId: prId.toString(),
         );
-        if (msgResult.isRight) {
-          allBranches.addAll(msgResult.right);
-        }
-      }
-
-      final normalizedFound3 = allBranches
-          .map((b) => b.replaceFirst(RegExp(r'^(remotes/)?origin/'), ''))
-          .toSet();
-      final branchesToCheck3 = envBranchPatterns
-          .where((p) => !normalizedFound3.any(
-            (b) => b == p || b.endsWith('/$p'),
-          ))
-          .toList();
-
-      if (branchesToCheck3.isNotEmpty) {
-        _logger.info(
-          '$prLabel: running pickaxe for branches: $branchesToCheck3',
-        );
-        final stringResult = await _gitClient.branchesContainingString(
-          candidateSha,
-          workingDirectory: workingDirectory,
-          onlyBranches: branchesToCheck3,
-          prId: prId.toString(),
-        );
-        if (stringResult.isRight) {
-          allBranches.addAll(stringResult.right);
+        if (changeIdResult.isRight) {
+          allBranches.addAll(changeIdResult.right);
         }
       }
     }
@@ -442,7 +402,7 @@ class PrSyncService {
     if (mappings.isNotEmpty) {
       for (final m in mappings) {
         _logger.info(
-          '  env#${m.id}: name="${m.environmentName}", pattern="$m.branchPattern"',
+          '  env#${m.id}: name="${m.environmentName}", pattern="${m.branchPattern}"',
         );
       }
     }
@@ -537,6 +497,14 @@ class PrSyncService {
     return result.right?.path;
   }
 
+  Future<bool?> _loadIsManual(int id) async {
+    final result = await _repository.getById(id);
+    if (result.isLeft || result.right == null) {
+      return null;
+    }
+    return result.right!.isManual;
+  }
+
   void _schedulePeriodicSync() {
     _pollingTimer?.cancel();
     _countdownTickTimer?.cancel();
@@ -593,11 +561,7 @@ class PrSyncService {
     final normalized = branch
         .replaceFirst(RegExp(r'^remotes/'), '')
         .replaceFirst(RegExp(r'^origin/'), '');
-    return normalized.endsWith('/$pattern') || normalized == pattern;
+    return normalized == pattern;
   }
 
-  String _sanitizeBaseRef(String ref) {
-    final parts = ref.split(' -> ');
-    return parts.last.trim();
-  }
 }

@@ -24,6 +24,7 @@ PullRequest _pr({int id = 1, String jiraTicket = 'ABC-1'}) {
     providerPrId: '$id',
     providerStatus: 'completed',
     lastCommitSha: 'abc123',
+    isManual: false,
     isTicketClosed: false,
     createdAt: now,
     updatedAt: now,

@@ -56,6 +56,7 @@ class PrListNotifier extends StateNotifier<PrListState> {
     required String projectAlias,
     String? jiraTicket,
     String? prLink,
+    bool isManual = false,
   }) async {
     assert(projectAlias.trim().isNotEmpty, 'projectAlias must not be empty');
     _logger.info('Adding PR @ $projectAlias');
@@ -83,6 +84,7 @@ class PrListNotifier extends StateNotifier<PrListState> {
       prLink: prLink,
       provider: provider,
       providerPrId: providerPrId,
+      isManual: isManual,
     );
     if (result.isLeft) {
       _logger.severe('Add PR failed: ${result.left.message}');
@@ -103,6 +105,7 @@ class PrListNotifier extends StateNotifier<PrListState> {
     String? jiraTicket,
     String? prLink,
     required bool isTicketClosed,
+    bool? isManual,
   }) async {
     assert(id > 0, 'id must be greater than 0');
     assert(projectAlias.trim().isNotEmpty, 'projectAlias must not be empty');
@@ -133,6 +136,7 @@ class PrListNotifier extends StateNotifier<PrListState> {
       isTicketClosed: isTicketClosed,
       provider: provider,
       providerPrId: providerPrId,
+      isManual: isManual,
     );
     if (result.isLeft) {
       _logger.severe('Update PR #$id failed: ${result.left.message}');

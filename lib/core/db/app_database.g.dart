@@ -134,6 +134,21 @@ class $PullRequestsTable extends PullRequests
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isManualMeta = const VerificationMeta(
+    'isManual',
+  );
+  @override
+  late final GeneratedColumn<bool> isManual = GeneratedColumn<bool>(
+    'is_manual',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_manual" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -169,6 +184,7 @@ class $PullRequestsTable extends PullRequests
     lastMergeCommitSha,
     isTicketClosed,
     ticketStatus,
+    isManual,
     createdAt,
     updatedAt,
   ];
@@ -270,6 +286,12 @@ class $PullRequestsTable extends PullRequests
         ),
       );
     }
+    if (data.containsKey('is_manual')) {
+      context.handle(
+        _isManualMeta,
+        isManual.isAcceptableOrUnknown(data['is_manual']!, _isManualMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -339,6 +361,10 @@ class $PullRequestsTable extends PullRequests
         DriftSqlType.string,
         data['${effectivePrefix}ticket_status'],
       ),
+      isManual: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_manual'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -368,6 +394,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
   final String? lastMergeCommitSha;
   final bool isTicketClosed;
   final String? ticketStatus;
+  final bool isManual;
   final DateTime createdAt;
   final DateTime updatedAt;
   const PullRequest({
@@ -382,6 +409,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     this.lastMergeCommitSha,
     required this.isTicketClosed,
     this.ticketStatus,
+    required this.isManual,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -415,6 +443,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     if (!nullToAbsent || ticketStatus != null) {
       map['ticket_status'] = Variable<String>(ticketStatus);
     }
+    map['is_manual'] = Variable<bool>(isManual);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -449,6 +478,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       ticketStatus: ticketStatus == null && nullToAbsent
           ? const Value.absent()
           : Value(ticketStatus),
+      isManual: Value(isManual),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -473,6 +503,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       ),
       isTicketClosed: serializer.fromJson<bool>(json['isTicketClosed']),
       ticketStatus: serializer.fromJson<String?>(json['ticketStatus']),
+      isManual: serializer.fromJson<bool>(json['isManual']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -492,6 +523,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       'lastMergeCommitSha': serializer.toJson<String?>(lastMergeCommitSha),
       'isTicketClosed': serializer.toJson<bool>(isTicketClosed),
       'ticketStatus': serializer.toJson<String?>(ticketStatus),
+      'isManual': serializer.toJson<bool>(isManual),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -509,6 +541,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     Value<String?> lastMergeCommitSha = const Value.absent(),
     bool? isTicketClosed,
     Value<String?> ticketStatus = const Value.absent(),
+    bool? isManual,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => PullRequest(
@@ -529,6 +562,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
         : this.lastMergeCommitSha,
     isTicketClosed: isTicketClosed ?? this.isTicketClosed,
     ticketStatus: ticketStatus.present ? ticketStatus.value : this.ticketStatus,
+    isManual: isManual ?? this.isManual,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -561,6 +595,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
       ticketStatus: data.ticketStatus.present
           ? data.ticketStatus.value
           : this.ticketStatus,
+      isManual: data.isManual.present ? data.isManual.value : this.isManual,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -580,6 +615,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
           ..write('lastMergeCommitSha: $lastMergeCommitSha, ')
           ..write('isTicketClosed: $isTicketClosed, ')
           ..write('ticketStatus: $ticketStatus, ')
+          ..write('isManual: $isManual, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -599,6 +635,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
     lastMergeCommitSha,
     isTicketClosed,
     ticketStatus,
+    isManual,
     createdAt,
     updatedAt,
   );
@@ -617,6 +654,7 @@ class PullRequest extends DataClass implements Insertable<PullRequest> {
           other.lastMergeCommitSha == this.lastMergeCommitSha &&
           other.isTicketClosed == this.isTicketClosed &&
           other.ticketStatus == this.ticketStatus &&
+          other.isManual == this.isManual &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -633,6 +671,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
   final Value<String?> lastMergeCommitSha;
   final Value<bool> isTicketClosed;
   final Value<String?> ticketStatus;
+  final Value<bool> isManual;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const PullRequestsCompanion({
@@ -647,6 +686,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     this.lastMergeCommitSha = const Value.absent(),
     this.isTicketClosed = const Value.absent(),
     this.ticketStatus = const Value.absent(),
+    this.isManual = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -662,6 +702,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     this.lastMergeCommitSha = const Value.absent(),
     this.isTicketClosed = const Value.absent(),
     this.ticketStatus = const Value.absent(),
+    this.isManual = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
   }) : projectAlias = Value(projectAlias),
@@ -679,6 +720,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     Expression<String>? lastMergeCommitSha,
     Expression<bool>? isTicketClosed,
     Expression<String>? ticketStatus,
+    Expression<bool>? isManual,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -695,6 +737,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
         'last_merge_commit_sha': lastMergeCommitSha,
       if (isTicketClosed != null) 'is_ticket_closed': isTicketClosed,
       if (ticketStatus != null) 'ticket_status': ticketStatus,
+      if (isManual != null) 'is_manual': isManual,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -712,6 +755,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     Value<String?>? lastMergeCommitSha,
     Value<bool>? isTicketClosed,
     Value<String?>? ticketStatus,
+    Value<bool>? isManual,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -727,6 +771,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
       lastMergeCommitSha: lastMergeCommitSha ?? this.lastMergeCommitSha,
       isTicketClosed: isTicketClosed ?? this.isTicketClosed,
       ticketStatus: ticketStatus ?? this.ticketStatus,
+      isManual: isManual ?? this.isManual,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -768,6 +813,9 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
     if (ticketStatus.present) {
       map['ticket_status'] = Variable<String>(ticketStatus.value);
     }
+    if (isManual.present) {
+      map['is_manual'] = Variable<bool>(isManual.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -791,6 +839,7 @@ class PullRequestsCompanion extends UpdateCompanion<PullRequest> {
           ..write('lastMergeCommitSha: $lastMergeCommitSha, ')
           ..write('isTicketClosed: $isTicketClosed, ')
           ..write('ticketStatus: $ticketStatus, ')
+          ..write('isManual: $isManual, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2112,6 +2161,7 @@ typedef $$PullRequestsTableCreateCompanionBuilder =
       Value<String?> lastMergeCommitSha,
       Value<bool> isTicketClosed,
       Value<String?> ticketStatus,
+      Value<bool> isManual,
       required DateTime createdAt,
       required DateTime updatedAt,
     });
@@ -2128,6 +2178,7 @@ typedef $$PullRequestsTableUpdateCompanionBuilder =
       Value<String?> lastMergeCommitSha,
       Value<bool> isTicketClosed,
       Value<String?> ticketStatus,
+      Value<bool> isManual,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -2216,6 +2267,11 @@ class $$PullRequestsTableFilterComposer
 
   ColumnFilters<String> get ticketStatus => $composableBuilder(
     column: $table.ticketStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isManual => $composableBuilder(
+    column: $table.isManual,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2319,6 +2375,11 @@ class $$PullRequestsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isManual => $composableBuilder(
+    column: $table.isManual,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2387,6 +2448,9 @@ class $$PullRequestsTableAnnotationComposer
     column: $table.ticketStatus,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get isManual =>
+      $composableBuilder(column: $table.isManual, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2459,6 +2523,7 @@ class $$PullRequestsTableTableManager
                 Value<String?> lastMergeCommitSha = const Value.absent(),
                 Value<bool> isTicketClosed = const Value.absent(),
                 Value<String?> ticketStatus = const Value.absent(),
+                Value<bool> isManual = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => PullRequestsCompanion(
@@ -2473,6 +2538,7 @@ class $$PullRequestsTableTableManager
                 lastMergeCommitSha: lastMergeCommitSha,
                 isTicketClosed: isTicketClosed,
                 ticketStatus: ticketStatus,
+                isManual: isManual,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -2489,6 +2555,7 @@ class $$PullRequestsTableTableManager
                 Value<String?> lastMergeCommitSha = const Value.absent(),
                 Value<bool> isTicketClosed = const Value.absent(),
                 Value<String?> ticketStatus = const Value.absent(),
+                Value<bool> isManual = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
               }) => PullRequestsCompanion.insert(
@@ -2503,6 +2570,7 @@ class $$PullRequestsTableTableManager
                 lastMergeCommitSha: lastMergeCommitSha,
                 isTicketClosed: isTicketClosed,
                 ticketStatus: ticketStatus,
+                isManual: isManual,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),

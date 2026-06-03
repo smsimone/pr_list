@@ -7,6 +7,7 @@ import 'package:pr_list/features/pr_list/pr_list_providers.dart';
 import 'package:pr_list/features/pr_list/pr_list_notifier.dart';
 import 'package:pr_list/features/projects/project_form_dialog.dart';
 import 'package:pr_list/features/projects/projects_providers.dart';
+import 'package:pr_list/features/settings/env_mapping_providers.dart';
 import 'package:pr_list/shared/utils/ticket_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -29,6 +30,9 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   bool _ticketClosed = false;
   bool _isSaving = false;
   bool _isVerifying = false;
+  bool _isManual = false;
+  bool _didInitManualFlags = false;
+  final Set<int> _manualEnvSelection = <int>{};
   String? _submitError;
   bool _projectSelected = false;
 
@@ -47,6 +51,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
       text: widget.existing?.prLink ?? '',
     );
     _ticketClosed = widget.existing?.isTicketClosed ?? false;
+    _isManual = widget.existing?.isManual ?? false;
     _ticketController.addListener(_onTicketChanged);
 
     if (widget.existing != null) {
@@ -195,6 +200,14 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
   @override
   Widget build(BuildContext context) {
     final projectsState = ref.watch(projectsNotifierProvider);
+    final envMappings = ref.watch(envMappingsProvider).valueOrNull ?? const <EnvironmentMapping>[];
+    final allFlags = ref.watch(prEnvFlagsProvider).valueOrNull;
+    if (!_didInitManualFlags && widget.existing != null && allFlags != null) {
+      _manualEnvSelection
+        ..clear()
+        ..addAll(allFlags[widget.existing!.id] ?? const <int>[]);
+      _didInitManualFlags = true;
+    }
     final commitSha = widget.existing?.lastCommitSha;
     return AlertDialog(
       title: Text(widget.existing == null
@@ -314,6 +327,34 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                 title: Text(_l10n.ticketClosed),
                 controlAffinity: ListTileControlAffinity.leading,
               ),
+              CheckboxListTile(
+                value: _isManual,
+                onChanged: !_projectSelected
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _isManual = value ?? false;
+                        });
+                      },
+                title: Text(_l10n.manualMode),
+                subtitle: Text(_l10n.manualModeHint),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              if (_isManual && widget.existing != null) ...[
+                const SizedBox(height: 8),
+                _ManualEnvironmentDropdown(
+                  title: _l10n.manualEnvironmentSelection,
+                  mappings: envMappings,
+                  selectedIds: _manualEnvSelection,
+                  onChanged: (nextSelection) {
+                    setState(() {
+                      _manualEnvSelection
+                        ..clear()
+                        ..addAll(nextSelection);
+                    });
+                  },
+                ),
+              ],
               if (widget.existing?.ticketStatus != null &&
                   widget.existing!.ticketStatus!.trim().isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -371,7 +412,9 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : OutlinedButton(
-                    onPressed: (_isSaving || _isVerifying) ? null : _verifyEnvironments,
+                    onPressed: (_isSaving || _isVerifying || _isManual)
+                        ? null
+                        : _verifyEnvironments,
                     child: const Text('Verifica ambienti'),
                   ),
           ),
@@ -415,6 +458,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                               projectAlias: _projectController.text.trim(),
                               jiraTicket: jiraTicket,
                               prLink: prLink,
+                              isManual: _isManual,
                             )
                           : await notifier.updatePr(
                               id: widget.existing!.id,
@@ -422,6 +466,7 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                               jiraTicket: jiraTicket,
                               prLink: prLink,
                               isTicketClosed: _ticketClosed,
+                              isManual: _isManual,
                             );
                       if (!mounted) {
                         return;
@@ -434,6 +479,22 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
                         });
                         return;
                       }
+
+                      if (!isNew) {
+                        final repo = ref.read(prRepositoryProvider);
+                        if (_isManual) {
+                          await repo.setEnvFlags(
+                            widget.existing!.id,
+                            _manualEnvSelection.toList()..sort(),
+                          );
+                        } else if (widget.existing!.isManual) {
+                          await repo.setEnvFlags(widget.existing!.id, const []);
+                        }
+                        if (!mounted) {
+                          return;
+                        }
+                      }
+
                       _logger.info('PR saved successfully');
                       Navigator.of(this.context).pop();
                     },
@@ -442,6 +503,75 @@ class _PrFormDialogState extends ConsumerState<PrFormDialog> {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _ManualEnvironmentDropdown extends StatefulWidget {
+  final String title;
+  final List<EnvironmentMapping> mappings;
+  final Set<int> selectedIds;
+  final ValueChanged<Set<int>> onChanged;
+
+  const _ManualEnvironmentDropdown({
+    required this.title,
+    required this.mappings,
+    required this.selectedIds,
+    required this.onChanged,
+  });
+
+  @override
+  State<_ManualEnvironmentDropdown> createState() => _ManualEnvironmentDropdownState();
+}
+
+class _ManualEnvironmentDropdownState extends State<_ManualEnvironmentDropdown> {
+  final MenuController _menuController = MenuController();
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedNames = widget.mappings
+        .where((m) => widget.selectedIds.contains(m.id))
+        .map((m) => m.environmentName.trim())
+        .where((name) => name.isNotEmpty)
+        .toList();
+
+    final subtitle = selectedNames.isEmpty ? '-' : selectedNames.join(', ');
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: MenuAnchor(
+        controller: _menuController,
+        builder: (context, controller, child) {
+          return OutlinedButton.icon(
+            onPressed: () {
+              if (controller.isOpen) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+            icon: const Icon(Icons.arrow_drop_down),
+            label: Text('${widget.title}: $subtitle'),
+          );
+        },
+        menuChildren: widget.mappings.map((mapping) {
+          final selected = widget.selectedIds.contains(mapping.id);
+          return CheckboxMenuButton(
+            closeOnActivate: false,
+            value: selected,
+            onChanged: (checked) {
+              final next = <int>{...widget.selectedIds};
+              if (checked ?? false) {
+                next.add(mapping.id);
+              } else {
+                next.remove(mapping.id);
+              }
+              widget.onChanged(next);
+            },
+            child: Text(mapping.environmentName),
+          );
+        }).toList(),
+      ),
     );
   }
 }

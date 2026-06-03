@@ -8,26 +8,10 @@ abstract class GitClient {
     String? prId,
   });
 
-  Future<Either<Failure, List<String>>> branchesContainingPatchId(
+  Future<Either<Failure, List<String>>> branchesContainingChangeId(
     String commitSha, {
     required String workingDirectory,
     List<String>? onlyBranches,
-    String? baseRef,
-    String? prId,
-  });
-
-  Future<Either<Failure, List<String>>> branchesContainingMessage(
-    String commitSha, {
-    required String workingDirectory,
-    List<String>? onlyBranches,
-    String? prId,
-  });
-
-  Future<Either<Failure, List<String>>> branchesContainingString(
-    String commitSha, {
-    required String workingDirectory,
-    List<String>? onlyBranches,
-    List<String>? searchStrings,
     String? prId,
   });
 

@@ -88,6 +88,16 @@ class AppLocalizationsIt extends AppLocalizations {
   String get ticketClosed => 'Ticket chiuso';
 
   @override
+  String get manualMode => 'Modalita manuale';
+
+  @override
+  String get manualModeHint =>
+      'Disattiva i controlli automatici e assegna manualmente gli ambienti';
+
+  @override
+  String get manualEnvironmentSelection => 'Ambienti';
+
+  @override
   String get viewList => 'Vista lista';
 
   @override

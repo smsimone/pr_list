@@ -33,6 +33,7 @@ class PrRepository {
     String? prLink,
     String? provider,
     String? providerPrId,
+    bool isManual = false,
   }) async {
     assert(projectAlias.trim().isNotEmpty, 'projectAlias must not be empty');
     final now = DateTime.now();
@@ -46,6 +47,7 @@ class PrRepository {
               prLink: Value(prLink),
               provider: Value(provider),
               providerPrId: Value(providerPrId),
+              isManual: Value(isManual),
               createdAt: now,
               updatedAt: now,
             ),
@@ -66,6 +68,7 @@ class PrRepository {
     required bool isTicketClosed,
     String? provider,
     String? providerPrId,
+    bool? isManual,
   }) async {
     assert(id > 0, 'id must be greater than 0');
     assert(projectAlias.trim().isNotEmpty, 'projectAlias must not be empty');
@@ -78,6 +81,7 @@ class PrRepository {
           isTicketClosed: Value(isTicketClosed),
           provider: Value(provider),
           providerPrId: Value(providerPrId),
+          isManual: isManual == null ? const Value.absent() : Value(isManual),
           updatedAt: Value(DateTime.now()),
         ),
       );
@@ -173,6 +177,11 @@ class PrRepository {
           );
         }
       });
+      // Touch pull_requests timestamp to trigger watch listeners
+      await (_db.update(_db.pullRequests)..where((t) => t.id.equals(prId)))
+          .write(PullRequestsCompanion(
+            updatedAt: Value(DateTime.now()),
+          ));
       return const Either.right(null);
     } catch (err) {
       _logger.severe('setEnvFlags for [PR#$prId] failed: $err');

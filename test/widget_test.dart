@@ -62,6 +62,7 @@ void main() {
       prLink: any(named: 'prLink'),
       provider: any(named: 'provider'),
       providerPrId: any(named: 'providerPrId'),
+      isManual: any(named: 'isManual'),
     )).thenAnswer(
       (_) async => const Either.right(1),
     );
@@ -103,9 +104,11 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    final CheckboxListTile tile = tester.widget<CheckboxListTile>(
-      find.byType(CheckboxListTile),
+    final checkboxFinder = find.ancestor(
+      of: find.text('Ticket closed'),
+      matching: find.byType(CheckboxListTile),
     );
+    final CheckboxListTile tile = tester.widget<CheckboxListTile>(checkboxFinder);
     expect(tile.onChanged, isNull);
   });
 
@@ -176,6 +179,7 @@ List<Override> _providerOverrides(
     envMappingRepositoryProvider.overrideWithValue(envMappingRepository),
     envMappingsProvider.overrideWith((ref) async => <EnvironmentMapping>[]),
     prEnvFlagsProvider.overrideWith((ref) async => <int, List<int>>{}),
+    prListViewModeProvider.overrideWith((ref) => PrListViewMode.groupedList),
   ];
 }
 
@@ -209,6 +213,7 @@ PullRequest _samplePr() {
     providerPrId: '1',
     providerStatus: 'completed',
     lastCommitSha: 'abc123',
+    isManual: false,
     isTicketClosed: false,
     createdAt: now,
     updatedAt: now,

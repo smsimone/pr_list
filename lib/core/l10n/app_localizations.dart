@@ -248,6 +248,24 @@ abstract class AppLocalizations {
   /// **'Ticket closed'**
   String get ticketClosed;
 
+  /// No description provided for @manualMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual mode'**
+  String get manualMode;
+
+  /// No description provided for @manualModeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable automatic checks and assign environments manually'**
+  String get manualModeHint;
+
+  /// No description provided for @manualEnvironmentSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Environments'**
+  String get manualEnvironmentSelection;
+
   /// No description provided for @viewList.
   ///
   /// In en, this message translates to:
